@@ -469,6 +469,25 @@ button{cursor:pointer;color:inherit;}
 .csv-btn{display:flex;align-items:center;justify-content:center;gap:6px;border-style:solid;border-color:var(--rose);}
 .csv-btn svg{width:15px;height:15px;}
 
+/* 记账本输入框 */
+.fin-input-row{display:flex;gap:8px;margin-bottom:8px;width:100%;box-sizing:border-box;}
+.fin-amt-input{width:90px;flex-shrink:0;border:1.5px solid var(--line);border-radius:var(--radius-xs);padding:9px 12px;font-size:16px;background:#fff;color:var(--text);box-sizing:border-box;}
+.fin-note-input{flex:1;min-width:0;border:1.5px solid var(--line);border-radius:var(--radius-xs);padding:9px 12px;font-size:14px;background:#fff;color:var(--text);box-sizing:border-box;}
+
+/* 记账本按日分组 */
+.fin-day{border:1px solid var(--line-soft);border-radius:var(--radius-xs);background:var(--pink-50);overflow:hidden;margin-bottom:6px;}
+.fin-day-head{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fff;cursor:pointer;}
+.fin-day-title{font-size:13px;font-weight:800;color:var(--text);}
+.fin-day-count{font-size:11px;color:var(--text-mute);background:var(--pink-50);padding:2px 6px;border-radius:10px;}
+.fin-day-sum{font-size:13px;font-weight:700;}
+.fin-day-sum.income{color:var(--green);}
+.fin-day-sum.expense{color:var(--red);}
+.fin-day-arrow{width:16px;height:16px;color:var(--text-mute);display:flex;align-items:center;justify-content:center;transition:transform .2s;}
+.fin-day-arrow svg{width:14px;height:14px;}
+.fin-day.collapsed .fin-day-body{display:none;}
+.fin-day.collapsed .fin-day-arrow{transform:rotate(-90deg);}
+.fin-day-body{display:flex;flex-direction:column;gap:4px;padding:8px;}
+
 .time-input-row{display:flex;gap:10px;margin-bottom:4px;}
 .time-field{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
 .time-field label{font-size:11px;font-weight:700;color:var(--rose-deep);}
@@ -1800,19 +1819,51 @@ function renderFinance(id, m){
   const exp = cur.filter(r=>r.kind==='expense').reduce((a,r)=>a+(r.amount||0),0);
   const balance = inc - exp;
 
-  const list = all.slice().reverse();
-  const maxShow = 5;
-  const needCollapse = list.length > maxShow;
-  const items = list.map(r=>`
-    <div class="fin-item">
-      <div class="fin-info">
-        <div class="fin-cat">${escapeHtml(r.category||'未分类')}${r.note?` <span class="fin-note">${escapeHtml(r.note)}</span>`:''}</div>
-        <div class="fin-date">${r.date}${r.time?' '+r.time:''}</div>
+  // group by date
+  const dateMap = {};
+  all.slice().reverse().forEach(r=>{
+    if(!dateMap[r.date]) dateMap[r.date] = [];
+    dateMap[r.date].push(r);
+  });
+  const dates = Object.keys(dateMap).sort((a,b)=>b.localeCompare(a));
+
+  const dayTitle = (d)=>{
+    const t = todayStr();
+    return d===t ? '今天' : d;
+  };
+  const renderDay = (d, records)=>{
+    const dayInc = records.filter(r=>r.kind==='income').reduce((a,r)=>a+(r.amount||0),0);
+    const dayExp = records.filter(r=>r.kind==='expense').reduce((a,r)=>a+(r.amount||0),0);
+    const items = records.map(r=>`
+      <div class="fin-item">
+        <div class="fin-info">
+          <div class="fin-cat">${escapeHtml(r.category||'未分类')}${r.note?` <span class="fin-note">${escapeHtml(r.note)}</span>`:''}</div>
+          <div class="fin-date">${r.time||''}</div>
+        </div>
+        <div class="fin-amt ${r.kind==='income'?'income':'expense'}">${r.kind==='income'?'+':'−'}¥${formatMoney(r.amount)}</div>
+        <button class="fin-edit" onclick="editFinance('${id}','${r.id}')">${ICONS.edit}</button>
+        <button class="fin-del" onclick="delFinance('${id}','${r.id}')">${ICONS.del}</button>
+      </div>`).join('');
+    return `
+      <div class="fin-day">
+        <div class="fin-day-head" onclick="toggleFinDay(this)">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="fin-day-title">${dayTitle(d)}</span>
+            <span class="fin-day-count">${records.length}笔</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="fin-day-sum income">+¥${formatMoney(dayInc)}</span>
+            <span class="fin-day-sum expense">−¥${formatMoney(dayExp)}</span>
+            <span class="fin-day-arrow">${ICONS.down}</span>
+          </div>
+        </div>
+        <div class="fin-day-body">${items}</div>
       </div>
-      <div class="fin-amt ${r.kind==='income'?'income':'expense'}">${r.kind==='income'?'+':'−'}¥${formatMoney(r.amount)}</div>
-      <button class="fin-edit" onclick="editFinance('${id}','${r.id}')">${ICONS.edit}</button>
-      <button class="fin-del" onclick="delFinance('${id}','${r.id}')">${ICONS.del}</button>
-    </div>`);
+    `;
+  };
+  const maxDays = 3;
+  const needCollapse = dates.length > maxDays;
+  const dayHtml = dates.map(d=>renderDay(d, dateMap[d]));
 
   const editRec = finEditId ? all.find(r=>r.id===finEditId) : null;
   const formKind = editRec ? editRec.kind : finKind;
@@ -1851,9 +1902,9 @@ function renderFinance(id, m){
       <datalist id="finCats_${id}">
         ${FIN_CATS[formKind].map(c=>`<option value="${c}">`).join('')}
       </datalist>
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input type="number" id="finAmt_${id}" placeholder="金额" min="0" step="0.01" value="${editRec?editRec.amount:''}" style="flex:1;border:1.5px solid var(--line);border-radius:var(--radius-xs);padding:9px 12px;font-size:16px;background:#fff">
-        <input type="text" id="finNote_${id}" placeholder="备注（选填）" value="${editRec?escapeHtml(editRec.note):''}" style="flex:1;border:1.5px solid var(--line);border-radius:var(--radius-xs);padding:9px 12px;font-size:14px;background:#fff">
+      <div class="fin-input-row">
+        <input type="number" id="finAmt_${id}" class="fin-amt-input" placeholder="金额" min="0" step="0.01" value="${editRec?editRec.amount:''}">
+        <input type="text" id="finNote_${id}" class="fin-note-input" placeholder="备注（选填）" value="${editRec?escapeHtml(editRec.note):''}">
       </div>
       <button class="add-card orange" onclick="saveFinance('${id}')"><span class="add-icon">${ICONS[finEditId?'check':'add']}</span><span class="add-text">${finEditId?'保存修改':'保存记录'}</span></button>
       ${finEditId?`<button class="add-card ash" onclick="cancelFinEdit()" style="margin-top:8px"><span class="add-icon">${ICONS.del}</span><span class="add-text">取消编辑</span></button>`:''}
@@ -1862,11 +1913,11 @@ function renderFinance(id, m){
     <div class="card">
       <div class="card-title">${ICONS.clock}明细记录<span class="tail">共${list.length}条</span></div>
       <div class="fin-list">
-        ${list.length===0?'<div style="text-align:center;padding:14px;color:var(--text-mute);font-size:12px">还没有记账记录</div>':
-          items.slice(0, maxShow).join('') + (needCollapse?`<div class="collapse-extra" style="display:none">${items.slice(maxShow).join('')}</div>`:'')
+        ${dates.length===0?'<div style="text-align:center;padding:14px;color:var(--text-mute);font-size:12px">还没有记账记录</div>':
+          dayHtml.slice(0, maxDays).join('') + (needCollapse?`<div class="collapse-extra" style="display:none">${dayHtml.slice(maxDays).join('')}</div>`:'')
         }
       </div>
-      ${needCollapse?`<button class="more-btn" onclick="toggleMore(this)"><span class="more-text">展开更多（共${list.length}条）</span></button>`:''}
+      ${needCollapse?`<button class="more-btn" onclick="toggleMore(this)"><span class="more-text">展开更多（共${dates.length}天）</span></button>`:''}
       ${list.length>0?`<button class="more-btn csv-btn" onclick="exportFinanceCSV('${id}')">${ICONS.down}导出CSV账单</button>`:''}
     </div>
   `;
@@ -1907,6 +1958,12 @@ function editFinance(id, rid){
 function cancelFinEdit(){
   finEditId = null;
   renderMain();
+}
+
+function toggleFinDay(head){
+  const day = head.closest('.fin-day');
+  if(!day) return;
+  day.classList.toggle('collapsed');
 }
 
 function delFinance(id, rid){
