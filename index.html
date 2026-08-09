@@ -488,6 +488,80 @@ button{cursor:pointer;color:inherit;}
 .fin-day.collapsed .fin-day-arrow{transform:rotate(-90deg);}
 .fin-day-body{display:flex;flex-direction:column;gap:4px;padding:8px;}
 
+/* 健康管理子 tab */
+.health-tabs{display:flex;gap:6px;margin-bottom:14px;}
+.health-tab{flex:1;padding:8px 4px;border:1.5px solid var(--line);border-radius:var(--radius-xs);background:#fff;color:var(--text-soft);font-size:12px;font-weight:700;text-align:center;cursor:pointer;transition:all .2s;}
+.health-tab.active{background:linear-gradient(135deg,#7fd1a8,#5fb589);color:#fff;border-color:#5fb589;}
+
+/* 医美记录 */
+.cosmed-section{margin-bottom:16px;}
+.cosmed-section-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.cosmed-section-title .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.cosmed-item{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--pink-50);border:1px solid var(--line-soft);border-radius:var(--radius-xs);margin-bottom:6px;}
+.cosmed-item .ci-main{flex:1;min-width:0;font-size:12px;color:var(--text);line-height:1.6;}
+.cosmed-item .ci-date{font-size:11px;color:var(--text-mute);}
+.cosmed-item .ci-org{font-weight:700;color:var(--rose-deep);}
+
+/* 美瞳有效期 */
+.lens-item{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--pink-50);border:1px solid var(--line-soft);border-radius:var(--radius-xs);margin-bottom:6px;}
+.lens-item.warn{background:#fff4e6;border-color:#ffcc80;}
+.lens-item.expired{background:#ffe8ec;border-color:#ff6b81;}
+.lens-item .li-main{flex:1;min-width:0;}
+.lens-item .li-model{font-size:13px;font-weight:700;color:var(--text);}
+.lens-item .li-date{font-size:11px;color:var(--text-mute);margin-top:2px;}
+.lens-item .li-days{font-size:13px;font-weight:800;white-space:nowrap;}
+.lens-item.warn .li-days{color:#e08a3a;}
+.lens-item.expired .li-days{color:#d63031;}
+
+/* 月经周期 */
+.period-item{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--pink-50);border:1px solid var(--line-soft);border-radius:var(--radius-xs);margin-bottom:6px;}
+.period-item .pi-main{flex:1;min-width:0;font-size:12px;color:var(--text);line-height:1.6;}
+.period-item .pi-date{font-weight:700;color:var(--rose-deep);}
+.period-item .pi-gap{font-size:11px;color:#e08a3a;font-weight:600;}
+
+/* 健康管理表单通用约束 —— 全部单列堆叠，绝对不超框 */
+.health-form-row{display:flex;flex-direction:column;gap:10px;margin-bottom:10px;width:100%;box-sizing:border-box;}
+.health-form-field{display:flex;flex-direction:column;gap:5px;width:100%;min-width:0;box-sizing:border-box;}
+.health-form-field label{font-size:12px;font-weight:700;color:var(--rose-deep);}
+.health-form-field input,
+.health-form-field textarea,
+.health-form-field select{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+  border:1.5px solid var(--line);
+  border-radius:var(--radius-xs);
+  padding:10px 12px;
+  font-size:14px;
+  background:#fff;
+  font-family:inherit;
+  color:var(--text);
+}
+/* 关键：iOS Safari date input 强制约束 */
+.health-form-field input[type="date"]{
+  min-width:0;
+  max-width:100%;
+  width:100%;
+  font-size:14px;
+  padding:10px 12px;
+  -webkit-appearance:none;
+  appearance:none;
+  box-sizing:border-box;
+}
+.health-form-field input[type="number"]{
+  min-width:0;
+  max-width:100%;
+  width:100%;
+  font-size:14px;
+  padding:10px 12px;
+  box-sizing:border-box;
+}
+/* 健康管理所有 input 都加显式边框，确保边界清晰 */
+#mainBody .health-form-field input,
+#mainBody .health-form-field textarea,
+#mainBody .health-form-field select{border:1.5px solid var(--line) !important;}
+
 .time-input-row{display:flex;gap:10px;margin-bottom:4px;}
 .time-field{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
 .time-field label{font-size:11px;font-weight:700;color:var(--rose-deep);}
@@ -623,12 +697,15 @@ const ICONS = {
   note: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>',
   wallet: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h11zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>',
   down: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>',
+  heart: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+  sparkle: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2L9.91 8.91 3 11l6.91 2.09L12 20l2.09-6.91L21 11l-6.91-2.09L12 2zm0 4l1.2 3.6L17 9l-3.8 1.4L12 14l-1.2-3.6L7 9l3.8-1.4L12 6zm7 12l-.7 2.1L16 21l2.3.9L19 24l.7-2.1L22 21l-2.3-.9L19 18zM5 14l-.5 1.5L3 16l1.5.5L5 18l.5-1.5L7 16l-1.5-.5L5 14z"/></svg>',
+  eye: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>',
 };
 
 const MODULES = [
   { id:'daily', group:'核心功能', name:'每日计划', icon:'plan', color:'#ff8fb5', type:'daily' },
   { id:'food', group:'日常生活', name:'饮食记录', icon:'food', color:'#ff9bb3', type:'life' },
-  { id:'fitness', group:'日常生活', name:'健身记录', icon:'fitness', color:'#7fd1a8', type:'life' },
+  { id:'fitness', group:'日常生活', name:'健康管理', icon:'fitness', color:'#7fd1a8', type:'life' },
   { id:'pill', group:'日常生活', name:'用药情况', icon:'pill', color:'#a5d8ff', type:'life' },
   { id:'sleep', group:'日常生活', name:'睡眠状况', icon:'moon', color:'#d9b3ff', type:'life' },
   { id:'notes', group:'日常生活', name:'随笔速记', icon:'note', color:'#ffb27a', type:'life' },
@@ -733,6 +810,7 @@ let lastBackupPrompt = 0;
 let finPeriod = 'month';
 let finEditId = null;
 let finKind = 'expense';
+let healthTab = 'fitness';
 
 function renderNav(){
   const list = document.getElementById('navList');
@@ -1455,6 +1533,26 @@ function importData(file){
           DB.modules[id].lifeRecords = [...(DB.modules[id].lifeRecords||[]), ...(data.modules[id].lifeRecords||[])];
         });
       }
+      // 导入后补全 navOrder 中缺失的模块（兼容旧备份）
+      const allIds = MODULES.map(m=>m.id);
+      allIds.forEach(mid=>{
+        if(!DB.navOrder.includes(mid)){
+          const m = MODULES.find(x=>x.id===mid);
+          const sameGroup = DB.navOrder.filter(id => MODULES.find(x=>x.id===id && x.group===m.group));
+          if(sameGroup.length > 0){
+            const lastIdx = DB.navOrder.lastIndexOf(sameGroup[sameGroup.length-1]);
+            DB.navOrder.splice(lastIdx+1, 0, mid);
+          }else{
+            DB.navOrder.push(mid);
+          }
+        }
+      });
+      // 确保每个模块都有完整数据结构
+      MODULES.forEach(m=>{
+        if(!DB.modules[m.id]) DB.modules[m.id] = { stats:[], plans:[], errors:[], durations:[], lifeRecords:[] };
+        if(!DB.modules[m.id].durations) DB.modules[m.id].durations = [];
+        if(!DB.modules[m.id].lifeRecords) DB.modules[m.id].lifeRecords = [];
+      });
       saveDB(); closeModal(); renderNav(); renderMain();
       toast('数据导入成功～');
     }catch(err){ toast('导入失败：文件格式错误'); }
@@ -1613,9 +1711,30 @@ function saveFood(id){
 }
 
 function renderFitness(id, m){
+  return `
+    <div class="card">
+      <div class="card-title">${ICONS.fitness}健康管理<span class="tail">${m.name}</span></div>
+      <div class="health-tabs">
+        <div class="health-tab ${healthTab==='fitness'?'active':''}" onclick="setHealthTab('fitness')">健身</div>
+        <div class="health-tab ${healthTab==='period'?'active':''}" onclick="setHealthTab('period')">经期</div>
+        <div class="health-tab ${healthTab==='cosmed'?'active':''}" onclick="setHealthTab('cosmed')">医美</div>
+        <div class="health-tab ${healthTab==='lens'?'active':''}" onclick="setHealthTab('lens')">美瞳</div>
+      </div>
+    </div>
+    ${healthTab==='fitness' ? renderHealthFitness(id, m) : ''}
+    ${healthTab==='period' ? renderPeriod(id, m) : ''}
+    ${healthTab==='cosmed' ? renderCosmed(id, m) : ''}
+    ${healthTab==='lens' ? renderLens(id, m) : ''}
+  `;
+}
+
+function setHealthTab(tab){ healthTab = tab; renderMain(); }
+
+// ===== 健身记录（子 tab） =====
+function renderHealthFitness(id, m){
   const md = getModuleData(id);
   const today = todayStr();
-  const records = md.lifeRecords.filter(r=>r.date===today).slice().reverse();
+  const records = md.lifeRecords.filter(r=>r.date===today && r.type==='fitness').slice().reverse();
   return `
     <div class="card">
       <div class="card-title">${ICONS.fitness}健身记录</div>
@@ -1645,6 +1764,253 @@ function saveFitness(id){
   saveDB(); renderMain();
   toast('健身记录已保存～');
 }
+
+// ===== 月经周期（子 tab） =====
+function renderPeriod(id, m){
+  const md = getModuleData(id);
+  const all = (md.lifeRecords||[]).filter(r=>r.type==='period').slice().reverse();
+  const today = todayStr();
+
+  const items = all.map((r, i) => {
+    let gapText = '';
+    if(i < all.length - 1){
+      const gap = Math.round((new Date(r.date) - new Date(all[i+1].date)) / 86400000);
+      gapText = `<span class="pi-gap">距上次 ${gap} 天</span>`;
+    }
+    return `<div class="period-item">
+      <div class="pi-main">
+        <span class="pi-date">${r.date}</span> · 持续 ${r.days||1} 天 ${r.note?' · '+escapeHtml(r.note):''}<br>
+        ${gapText}
+      </div>
+      <button class="d-del" onclick="delLifeRecord('${id}','${r.id}')">删除</button>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="card">
+      <div class="card-title">${ICONS.heart}月经周期<span class="tail">共${all.length}条</span></div>
+      <div class="health-form-row">
+        <div class="health-form-field">
+          <label>开始日期</label>
+          <input type="date" id="periodDate_${id}" value="${today}">
+        </div>
+        <div class="health-form-field">
+          <label>持续天数</label>
+          <input type="number" id="periodDays_${id}" value="5" min="1" max="15">
+        </div>
+        <div class="health-form-field">
+          <label>备注（选填）</label>
+          <input type="text" id="periodNote_${id}" placeholder="如量多/量少/痛经">
+        </div>
+      </div>
+      <button class="add-card green" onclick="savePeriod('${id}')"><span class="add-icon">${ICONS.heart}</span><span class="add-text">记录经期</span></button>
+    </div>
+    <div class="card">
+      <div class="card-title">${ICONS.clock}历史记录<span class="tail">共${all.length}条</span></div>
+      ${all.length===0?'<div style="text-align:center;padding:14px;color:var(--text-mute);font-size:12px">还没有经期记录</div>':items}
+    </div>
+  `;
+}
+
+function savePeriod(id){
+  const date = document.getElementById('periodDate_'+id).value;
+  const days = parseInt(document.getElementById('periodDays_'+id).value)||1;
+  const note = document.getElementById('periodNote_'+id).value.trim();
+  if(!date){ toast('请选择开始日期'); return; }
+  const md = getModuleData(id);
+  md.lifeRecords.push({ id:'l'+Date.now(), date, type:'period', days, note });
+  saveDB(); renderMain();
+  toast('经期记录已保存～');
+}
+
+// ===== 医美记录（子 tab） =====
+function renderCosmed(id, m){
+  const md = getModuleData(id);
+  const all = (md.lifeRecords||[]).filter(r=>r.type==='cosmed');
+  const today = todayStr();
+
+  const renderList = (status) => {
+    const items = all.filter(r=>r.status===status).slice().reverse();
+    if(items.length===0) return '<div style="text-align:center;padding:10px;color:var(--text-mute);font-size:12px">暂无记录</div>';
+    return items.map(r=>{
+      const dateStr = r.date ? `<span class="ci-date">${r.date}</span> · ` : '';
+      const orgStr = r.org ? `<span class="ci-org">${escapeHtml(r.org)}</span> · ` : '';
+      return `<div class="cosmed-item">
+        <div class="ci-main">${dateStr}${orgStr}${escapeHtml(r.item||'')}${r.note?' · '+escapeHtml(r.note):''}</div>
+        <button class="d-del" onclick="delLifeRecord('${id}','${r.id}')">删除</button>
+      </div>`;
+    }).join('');
+  };
+
+  return `
+    <div class="card">
+      <div class="cosmed-section">
+        <div class="cosmed-section-title"><span class="dot" style="background:#7fd1a8"></span>已做项目</div>
+        <div class="health-form-row">
+          <div class="health-form-field">
+            <label>日期</label>
+            <input type="date" id="cosDoneDate_${id}" value="${today}">
+          </div>
+          <div class="health-form-field">
+            <label>机构</label>
+            <input type="text" id="cosDoneOrg_${id}" placeholder="机构名">
+          </div>
+          <div class="health-form-field">
+            <label>项目名称</label>
+            <input type="text" id="cosDoneItem_${id}" placeholder="如水光针、热玛吉">
+          </div>
+          <div class="health-form-field">
+            <label>备注（选填）</label>
+            <input type="text" id="cosDoneNote_${id}" placeholder="如价格、效果">
+          </div>
+        </div>
+        <button class="add-card green" onclick="saveCosmed('${id}','done')" style="padding:10px"><span class="add-icon">${ICONS.check}</span><span class="add-text">添加已做</span></button>
+        ${renderList('done')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="cosmed-section">
+        <div class="cosmed-section-title"><span class="dot" style="background:#ffb27a"></span>卡上未做</div>
+        <div class="health-form-row">
+          <div class="health-form-field">
+            <label>机构</label>
+            <input type="text" id="cosCardOrg_${id}" placeholder="机构名">
+          </div>
+          <div class="health-form-field">
+            <label>项目名称</label>
+            <input type="text" id="cosCardItem_${id}" placeholder="如光子嫩肤">
+          </div>
+          <div class="health-form-field">
+            <label>备注（选填）</label>
+            <input type="text" id="cosCardNote_${id}" placeholder="剩余次数/金额">
+          </div>
+        </div>
+        <button class="add-card orange" onclick="saveCosmed('${id}','card')" style="padding:10px"><span class="add-icon">${ICONS.add}</span><span class="add-text">添加卡项</span></button>
+        ${renderList('card')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="cosmed-section">
+        <div class="cosmed-section-title"><span class="dot" style="background:#d9b3ff"></span>计划做项目</div>
+        <div class="health-form-row">
+          <div class="health-form-field">
+            <label>想做的项目</label>
+            <input type="text" id="cosPlanItem_${id}" placeholder="如热玛吉、超声刀">
+          </div>
+          <div class="health-form-field">
+            <label>备注（选填）</label>
+            <input type="text" id="cosPlanNote_${id}" placeholder="预算/计划时间">
+          </div>
+        </div>
+        <button class="add-card purple" onclick="saveCosmed('${id}','plan')" style="padding:10px"><span class="add-icon">${ICONS.sparkle}</span><span class="add-text">添加计划</span></button>
+        ${renderList('plan')}
+      </div>
+    </div>
+  `;
+}
+
+function saveCosmed(id, status){
+  const md = getModuleData(id);
+  let date = todayStr(), org = '', item = '', note = '';
+  if(status==='done'){
+    date = document.getElementById('cosDoneDate_'+id).value || todayStr();
+    org = document.getElementById('cosDoneOrg_'+id).value.trim();
+    item = document.getElementById('cosDoneItem_'+id).value.trim();
+    note = document.getElementById('cosDoneNote_'+id).value.trim();
+  }else if(status==='card'){
+    org = document.getElementById('cosCardOrg_'+id).value.trim();
+    item = document.getElementById('cosCardItem_'+id).value.trim();
+    note = document.getElementById('cosCardNote_'+id).value.trim();
+  }else if(status==='plan'){
+    item = document.getElementById('cosPlanItem_'+id).value.trim();
+    note = document.getElementById('cosPlanNote_'+id).value.trim();
+  }
+  if(!item){ toast('请填写项目名称'); return; }
+  md.lifeRecords.push({ id:'l'+Date.now(), date, type:'cosmed', status, org, item, note });
+  saveDB(); renderMain();
+  toast('医美记录已保存～');
+}
+
+// ===== 美瞳有效期（子 tab） =====
+function renderLens(id, m){
+  const md = getModuleData(id);
+  const all = (md.lifeRecords||[]).filter(r=>r.type==='lens').sort((a,b)=>{
+    const ea = r.openDate ? calcLensExpireDate(r.openDate, r.duration) : '';
+    const eb = r.openDate ? calcLensExpireDate(r.openDate, r.duration) : '';
+    return (eb||'').localeCompare(ea||'');
+  });
+  const today = todayStr();
+
+  const items = all.map(r=>{
+    const expire = r.openDate ? calcLensExpireDate(r.openDate, r.duration) : '';
+    const daysLeft = expire ? Math.ceil((new Date(expire) - new Date(today)) / 86400000) : null;
+    let cls = '', daysText = '';
+    if(daysLeft !== null){
+      if(daysLeft < 0){ cls = 'expired'; daysText = `已过期 ${Math.abs(daysLeft)} 天`; }
+      else if(daysLeft <= 14){ cls = 'warn'; daysText = `剩余 ${daysLeft} 天`; }
+      else { daysText = `剩余 ${daysLeft} 天`; }
+    }
+    return `<div class="lens-item ${cls}">
+      <div class="li-main">
+        <div class="li-model">${escapeHtml(r.model||'未命名')}（有效期 ${r.duration||0} 天）</div>
+        <div class="li-date">开封 ${r.openDate||'-'} → 过期 ${expire||'-'}${r.note?' · '+escapeHtml(r.note):''}</div>
+      </div>
+      <span class="li-days">${daysText}</span>
+      <button class="d-del" onclick="delLifeRecord('${id}','${r.id}')">删除</button>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="card">
+      <div class="card-title">${ICONS.eye}美瞳有效期<span class="tail">共${all.length}副</span></div>
+      <div class="health-form-row">
+        <div class="health-form-field">
+          <label>型号</label>
+          <input type="text" id="lensModel_${id}" placeholder="如海昌月抛棕">
+        </div>
+        <div class="health-form-field">
+          <label>开封日期</label>
+          <input type="date" id="lensOpen_${id}" value="${today}">
+        </div>
+        <div class="health-form-field">
+          <label>有效期（天）</label>
+          <input type="number" id="lensDuration_${id}" value="30" min="1" placeholder="如日抛1天、月抛30天、季抛90天">
+        </div>
+        <div class="health-form-field">
+          <label>备注（选填）</label>
+          <input type="text" id="lensNote_${id}" placeholder="如品牌、度数">
+        </div>
+      </div>
+      <button class="add-card green" onclick="saveLens('${id}')"><span class="add-icon">${ICONS.eye}</span><span class="add-text">添加美瞳</span></button>
+    </div>
+    <div class="card">
+      <div class="card-title">${ICONS.clock}有效期列表<span class="tail">按过期排序</span></div>
+      ${all.length===0?'<div style="text-align:center;padding:14px;color:var(--text-mute);font-size:12px">还没有美瞳记录</div>':items}
+    </div>
+  `;
+}
+
+function calcLensExpireDate(openDate, duration){
+  if(!openDate || !duration) return '';
+  const d = new Date(openDate);
+  d.setDate(d.getDate() + parseInt(duration));
+  return d.toISOString().slice(0,10);
+}
+
+function saveLens(id){
+  const model = document.getElementById('lensModel_'+id).value.trim();
+  const openDate = document.getElementById('lensOpen_'+id).value;
+  const duration = parseInt(document.getElementById('lensDuration_'+id).value)||0;
+  const note = document.getElementById('lensNote_'+id).value.trim();
+  if(!model){ toast('请填写型号'); return; }
+  if(!openDate){ toast('请选择开封日期'); return; }
+  if(!duration || duration<=0){ toast('请填写有效天数'); return; }
+  const md = getModuleData(id);
+  md.lifeRecords.push({ id:'l'+Date.now(), date:todayStr(), type:'lens', model, openDate, duration, note });
+  saveDB(); renderMain();
+  toast('美瞳记录已保存～');
+}
+
 
 function renderPill(id, m){
   const md = getModuleData(id);
@@ -1911,14 +2277,14 @@ function renderFinance(id, m){
     </div>
 
     <div class="card">
-      <div class="card-title">${ICONS.clock}明细记录<span class="tail">共${list.length}条</span></div>
+      <div class="card-title">${ICONS.clock}明细记录<span class="tail">共${all.length}条</span></div>
       <div class="fin-list">
         ${dates.length===0?'<div style="text-align:center;padding:14px;color:var(--text-mute);font-size:12px">还没有记账记录</div>':
           dayHtml.slice(0, maxDays).join('') + (needCollapse?`<div class="collapse-extra" style="display:none">${dayHtml.slice(maxDays).join('')}</div>`:'')
         }
       </div>
       ${needCollapse?`<button class="more-btn" onclick="toggleMore(this)"><span class="more-text">展开更多（共${dates.length}天）</span></button>`:''}
-      ${list.length>0?`<button class="more-btn csv-btn" onclick="exportFinanceCSV('${id}')">${ICONS.down}导出CSV账单</button>`:''}
+      ${all.length>0?`<button class="more-btn csv-btn" onclick="exportFinanceCSV('${id}')">${ICONS.down}导出CSV账单</button>`:''}
     </div>
   `;
 }
