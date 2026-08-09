@@ -739,9 +739,20 @@ const GROUP_ICONS = {
 
 const STORE_KEY = 'wb_wangsimu_v1';
 let DB = {};
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function todayStr(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
 function timeStr(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
-function dateStr(d){ return d.toISOString().slice(0,10); }
+function dateStr(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
 
 function loadDB(){
   try{
@@ -856,7 +867,12 @@ function renderMain(){
 
 function renderDaily(){
   const today = todayStr();
-  let todayItems = [], overdueItems = [];
+  // 计算"昨日"日期
+  const yest = new Date(today+'T00:00:00');
+  yest.setDate(yest.getDate()-1);
+  const yesterday = yest.getFullYear()+'-'+String(yest.getMonth()+1).padStart(2,'0')+'-'+String(yest.getDate()).padStart(2,'0');
+
+  let todayItems = [], yesterdayItems = [], overdueItems = [], historyItems = [];
   DB.navOrder.forEach(id=>{
     const m = MODULES.find(x=>x.id===id);
     if(!m || (m.type!=='subject' && m.type!=='life')) return;
@@ -864,11 +880,12 @@ function renderDaily(){
     md.plans.forEach(p=>{
       if(!p.done){
         if(p.date===today) todayItems.push({...p, moduleId:id, moduleName:m.name, color:m.color});
-        else if(p.date<today) overdueItems.push({...p, moduleId:id, moduleName:m.name, color:m.color});
+        else if(p.date===yesterday) yesterdayItems.push({...p, moduleId:id, moduleName:m.name, color:m.color});
+        else if(p.date<yesterday) overdueItems.push({...p, moduleId:id, moduleName:m.name, color:m.color});
+        // 注意：过期但属于 3 天内的，归到历史里；超过 7 天的，归到历史并标灰
       }
     });
   });
-  const allItems = [...overdueItems, ...todayItems];
 
   // 按日期排序所有倒计时
   const sortedCds = DB.countdowns.map(c=>({
@@ -917,13 +934,33 @@ function renderDaily(){
 
     <div class="card">
       <div class="card-title">${ICONS.plan}今日计划总览
-        <span class="tail">${allItems.length} 项待办</span>
+        <span class="tail">${todayItems.length} 项待办</span>
       </div>
-      ${allItems.length>0 ? `
+      ${todayItems.length>0 ? `
         <div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
-        <div class="progress-text">已完成 <b>0</b> / ${allItems.length} 项 · 完成率 <b>0%</b></div>
-        ${renderPlanGroups(allItems, today)}
+        <div class="progress-text">已完成 <b>0</b> / ${todayItems.length} 项 · 完成率 <b>0%</b></div>
+        ${renderPlanGroups(todayItems, today, 'today')}
       ` : `<div style="text-align:center;padding:14px;color:var(--text-mute);font-size:13px">今天暂无待办，去各模块添加计划吧～</div>`}
+    </div>
+
+    <div class="card">
+      <div class="card-title">${ICONS.clock}昨日计划
+        <span class="tail">${yesterdayItems.length} 项</span>
+      </div>
+      ${yesterdayItems.length>0 ? `
+        <div style="font-size:11px;color:var(--text-soft);margin-bottom:8px">${yesterday} · 还没完成的会自动归到历史</div>
+        ${renderPlanGroups(yesterdayItems, today, 'yesterday')}
+      ` : `<div style="text-align:center;padding:12px;color:var(--text-mute);font-size:12px">昨天没有未完成的计划 🎉</div>`}
+    </div>
+
+    <div class="card">
+      <div class="card-title">${ICONS.note}历史计划
+        <span class="tail">${overdueItems.length} 项逾期</span>
+      </div>
+      ${overdueItems.length>0 ? `
+        <div style="font-size:11px;color:#ff5252;margin-bottom:8px">⚠️ 这些计划已逾期，建议尽快处理或删除</div>
+        ${renderPlanGroups(overdueItems, today, 'history')}
+      ` : `<div style="text-align:center;padding:12px;color:var(--text-mute);font-size:12px">没有逾期计划，做得很好 👍</div>`}
     </div>
 
     <div class="card">
@@ -942,7 +979,7 @@ function renderDaily(){
   `;
 }
 
-function renderPlanGroups(items, today){
+function renderPlanGroups(items, today, mode){
   const groups = {};
   items.forEach(it=>{
     if(!groups[it.moduleName]) groups[it.moduleName] = {color:it.color, items:[]};
@@ -955,13 +992,23 @@ function renderPlanGroups(items, today){
         <span class="plan-group-name">${name}</span>
         <span class="plan-group-count">0/${groups[name].items.length}</span>
       </div>
-      ${groups[name].items.map(it=>`
-        <div class="plan-task ${it.date<today?'overdue':''}">
+      ${groups[name].items.map(it=>{
+        let dateLabel = '';
+        if(mode==='yesterday'){
+          dateLabel = '<span class="from" style="color:#ff9800">昨日遗留</span>';
+        } else if(mode==='history'){
+          const days = Math.ceil((new Date(today+'T00:00:00') - new Date(it.date+'T00:00:00')) / 86400000);
+          dateLabel = `<span class="from" style="color:#ff5252">逾期${days}天</span>`;
+        } else {
+          dateLabel = '<span class="from">待办</span>';
+        }
+        return `
+        <div class="plan-task ${mode!=='today'?'overdue':''}">
           <div class="check" onclick="quickDone('${it.moduleId}','${it.id}')">${ICONS.check}</div>
           <div class="txt">${escapeHtml(it.name)}</div>
-          ${it.date<today?'<span class="from" style="color:#ff5252">逾期</span>':'<span class="from">待办</span>'}
+          ${dateLabel}
         </div>
-      `).join('')}
+      `}).join('')}
     </div>
   `).join('');
 }
@@ -1994,7 +2041,7 @@ function calcLensExpireDate(openDate, duration){
   if(!openDate || !duration) return '';
   const d = new Date(openDate);
   d.setDate(d.getDate() + parseInt(duration));
-  return d.toISOString().slice(0,10);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
 function saveLens(id){
@@ -2431,7 +2478,30 @@ function delLifeRecord(id, rid){
 function init(){
   loadDB(); updateSyncUI(); renderNav(); renderMain(); updateTime();
   setInterval(saveDB, 30000);
-  document.addEventListener('visibilitychange', ()=>{ if(document.hidden) saveDB(); });
+  // 跨日自动刷新：每分钟检查一次日期是否变化
+  let lastDay = todayStr();
+  setInterval(()=>{
+    const curDay = todayStr();
+    if(curDay !== lastDay){
+      lastDay = curDay;
+      renderMain();
+      toast('已进入新的一天：'+curDay);
+    }
+  }, 60000);
+  // 页面从后台切回时也检查一次（iOS Safari 经常在后台挂起定时器）
+  document.addEventListener('visibilitychange', ()=>{
+    if(!document.hidden){
+      const curDay = todayStr();
+      if(curDay !== lastDay){
+        lastDay = curDay;
+        renderMain();
+      } else {
+        renderMain();
+      }
+    } else {
+      saveDB();
+    }
+  });
   window.addEventListener('beforeunload', saveDB);
 }
 
