@@ -749,7 +749,7 @@ function renderMain(){
   const body = document.getElementById('mainBody');
   if(currentModule==='daily'){
     body.innerHTML = renderDaily();
-  }else if(['food','fitness','pill','sleep','notes'].includes(currentModule)){
+  }else if(['food','fitness','pill','sleep','notes','finance'].includes(currentModule)){
     body.innerHTML = renderLife(currentModule);
   }else{
     body.innerHTML = renderSubject(currentModule);
