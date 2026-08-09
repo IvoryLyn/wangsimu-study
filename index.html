@@ -426,10 +426,21 @@ button{cursor:pointer;color:inherit;}
 .danger-btn{width:100%;padding:10px;border-radius:10px;background:#fff0f0;color:#d32f2f;border:1px solid #ffcdd2;font-size:13px;font-weight:600;}
 
 .duration-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;}
-.duration-item{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--pink-50);border-radius:var(--radius-xs);font-size:12px;border:1px solid var(--line-soft);}
-.duration-item .d-date{flex:1;color:var(--text-soft);}
-.duration-item .d-min{font-weight:700;color:var(--rose-deep);}
+.duration-item{display:flex;align-items:center;gap:6px;padding:9px 12px;background:var(--pink-50);border-radius:var(--radius-xs);font-size:12px;border:1px solid var(--line-soft);}
+.duration-item .d-date{color:var(--text-soft);min-width:75px;}
+.duration-item .d-time{color:var(--text-soft);font-size:11px;min-width:95px;}
+.duration-item .d-min{flex:1;font-weight:700;color:var(--rose-deep);}
 .duration-item .d-del{color:var(--text-mute);font-size:11px;}
+
+.more-btn{width:100%;padding:10px;margin-top:8px;border:1.5px dashed var(--line);border-radius:var(--radius-xs);background:var(--pink-50);color:var(--rose-deep);font-size:12px;font-weight:700;text-align:center;cursor:pointer;}
+.more-btn:active{background:var(--pink-100);}
+.collapse-extra{display:none;}
+
+.time-input-row{display:flex;gap:10px;margin-bottom:4px;}
+.time-field{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
+.time-field label{font-size:11px;font-weight:700;color:var(--rose-deep);}
+.time-input-wrap{width:100%;min-width:0;box-sizing:border-box;border:1.5px solid var(--line);border-radius:var(--radius-xs);padding:4px;background:#fff;overflow:hidden;height:42px;display:flex;align-items:center;justify-content:center;}
+.time-input{width:100%;min-width:0;border:none;padding:0;font-size:15px;background:transparent;color:var(--text);text-align:center;-webkit-appearance:none;appearance:none;height:100%;}
 
 .chart-box{background:var(--pink-50);border-radius:var(--radius-sm);padding:12px;border:1px solid var(--line-soft);}
 .chart-box svg{width:100%;height:auto;display:block;}
@@ -580,9 +591,12 @@ const MODULES = [
   { id:'p333', group:'学科英语研究生', name:'333教育综合', icon:'book', color:'#b388ff', type:'subject' },
   { id:'p899', group:'学科英语研究生', name:'899课程与教学论', icon:'book', color:'#a577ff', type:'subject' },
   { id:'ptu', group:'学科英语研究生', name:'ptu教育研究方法', icon:'book', color:'#9b6bdb', type:'subject' },
+  { id:'zyk', group:'汉语言文学小自考', name:'考试科目', icon:'book', color:'#7ec8e3', type:'subject' },
+  { id:'zyj', group:'汉语言文学小自考', name:'考试教材', icon:'book', color:'#6bb6d9', type:'subject' },
+  { id:'zyt', group:'汉语言文学小自考', name:'考试时间', icon:'book', color:'#5aa5c8', type:'subject' },
 ];
 
-const GROUP_ORDER = ['核心功能','日常生活','教师招聘','教师资格','学科英语研究生'];
+const GROUP_ORDER = ['核心功能','日常生活','教师招聘','教师资格','学科英语研究生','汉语言文学小自考'];
 const GROUP_ICONS = {
   '核心功能':'<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6zm-1 5v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>',
   '日常生活':'<svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>',
@@ -787,6 +801,7 @@ function renderDaily(){
         </div>
         <div style="font-size:32px">${renderProgressRing(todayMinutes,240)}</div>
       </div>
+      ${renderDailyDurationHistory()}
     </div>
   `;
 }
@@ -813,6 +828,45 @@ function renderPlanGroups(items, today){
       `).join('')}
     </div>
   `).join('');
+}
+
+function renderDailyDurationHistory(){
+  const byDate = {};
+  Object.keys(DB.modules).forEach(id=>{
+    (DB.modules[id].durations||[]).forEach(d=>{
+      if(!byDate[d.date]) byDate[d.date] = 0;
+      byDate[d.date] += d.min;
+    });
+  });
+  const dates = Object.keys(byDate).sort().reverse();
+  if(dates.length === 0){
+    return `<div style="margin-top:14px;border-top:1px solid var(--line-soft);padding-top:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--rose-deep);margin-bottom:8px">历史学习时长（按日）</div>
+      <div style="text-align:center;padding:10px;color:var(--text-mute);font-size:12px">还没有历史记录</div>
+    </div>`;
+  }
+  const today = todayStr();
+  const maxShow = 5;
+  const items = dates.map(d=>{
+    const min = byDate[d];
+    const isToday = d === today;
+    return `<div class="duration-item" style="${isToday?'border-color:var(--pink-300);background:var(--pink-100)':''}">
+      <span class="d-date">${isToday?'今天':d}</span>
+      <span class="d-min" style="flex:1;text-align:right">${min} 分钟</span>
+      <span style="font-size:10px;color:var(--text-mute);min-width:36px;text-align:right">${(min/60).toFixed(1)}h</span>
+    </div>`;
+  });
+  const needCollapse = items.length > maxShow;
+  return `
+    <div style="margin-top:14px;border-top:1px solid var(--line-soft);padding-top:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--rose-deep);margin-bottom:8px">历史学习时长（按日）</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${items.slice(0, maxShow).join('')}
+        ${needCollapse ? `<div class="collapse-extra" style="display:none">${items.slice(maxShow).join('')}</div>` : ''}
+      </div>
+      ${needCollapse ? `<button class="more-btn" onclick="toggleMore(this)"><span class="more-text">展开更多（共${items.length}天）</span></button>` : ''}
+    </div>
+  `;
 }
 
 function renderProgressRing(val, target){
@@ -1182,42 +1236,66 @@ function delError(id, eid){
 
 function renderDurationCard(id, m){
   const md = getModuleData(id);
-  const durs = (md.durations||[]).slice().reverse().slice(0,10);
+  const allDurs = (md.durations||[]).slice().reverse();
+  const todayTotal = durationSum(md.durations,'day');
+  const maxShow = 5;
+  const needCollapse = allDurs.length > maxShow;
+  const durItems = allDurs.map(d=>`<div class="duration-item">
+              <span class="d-date">${d.date}</span>
+              <span class="d-time">${d.start||''} - ${d.end||''}</span>
+              <span class="d-min">${d.min} 分钟</span>
+              <button class="d-del" onclick="delDuration('${id}','${d.id}')">删除</button>
+            </div>`);
   return `
     <div class="card">
       <div class="card-title">${ICONS.clock}学习时长打卡
-        <span class="tail">记录每段学习</span>
+        <span class="tail">今日 ${todayTotal} 分钟</span>
       </div>
-      <div class="clock-row">
-        <input type="number" id="durInput_${id}" placeholder="学习分钟数" min="1" inputmode="numeric">
-        <button class="add-card rose" onclick="addDuration('${id}')" style="margin-top:0"><span class="add-icon">${ICONS.add}</span><span class="add-text">打卡</span></button>
+      <div class="time-input-row">
+        <div class="time-field">
+          <label>开始</label>
+          <div class="time-input-wrap">
+            <input type="time" id="durStart_${id}" class="time-input" value="${new Date().toTimeString().slice(0,5)}">
+          </div>
+        </div>
+        <div class="time-field">
+          <label>结束</label>
+          <div class="time-input-wrap">
+            <input type="time" id="durEnd_${id}" class="time-input">
+          </div>
+        </div>
       </div>
-      <div style="font-size:11px;color:var(--text-mute);margin-bottom:8px">时长趋势 · ${currentStatRange==='day'?'今日':currentStatRange==='week'?'本周':'本月'}共 ${durationSum(md.durations,currentStatRange)} 分钟</div>
+      <button class="add-card rose" onclick="addDuration('${id}')" style="margin-top:10px"><span class="add-icon">${ICONS.add}</span><span class="add-text">打卡</span></button>
+      <div style="font-size:11px;color:var(--text-mute);margin-bottom:8px;margin-top:8px">时长趋势 · ${currentStatRange==='day'?'今日':currentStatRange==='week'?'本周':'本月'}共 ${durationSum(md.durations,currentStatRange)} 分钟</div>
       <div class="chart-box" style="margin-bottom:12px">${renderDurationChart(md.durations,currentStatRange)}</div>
       <div class="duration-list">
-        ${durs.length===0 ? '<div style="text-align:center;padding:14px;color:var(--text-mute);font-size:12px">还没有打卡记录</div>' :
-          durs.map(d=>`
-            <div class="duration-item">
-              <span class="d-date">${d.date}</span>
-              <span class="d-min">${d.min} 分钟</span>
-              <button class="d-del" onclick="delDuration('${id}','${d.id}')">删除</button>
-            </div>
-          `).join('')
+        ${allDurs.length===0 ? '<div style="text-align:center;padding:14px;color:var(--text-mute);font-size:12px">还没有打卡记录</div>' :
+          durItems.slice(0, maxShow).join('') + (needCollapse ? `<div class="collapse-extra" style="display:none">${durItems.slice(maxShow).join('')}</div>` : '')
         }
       </div>
+      ${needCollapse ? `<button class="more-btn" onclick="toggleMore(this)"><span class="more-text">展开更多（共${allDurs.length}条）</span></button>` : ''}
     </div>
   `;
 }
 
 function addDuration(id){
-  const input = document.getElementById('durInput_'+id);
-  const min = parseInt(input.value);
-  if(!min || min<1){ toast('请输入有效分钟数'); return; }
+  const startInput = document.getElementById('durStart_'+id);
+  const endInput = document.getElementById('durEnd_'+id);
+  const start = startInput.value;
+  const end = endInput.value;
+  if(!start || !end){ toast('请填写开始和结束时间'); return; }
+  // Calculate minutes
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  let min = (eh*60+em) - (sh*60+sm);
+  if(min <= 0){ toast('结束时间需晚于开始时间'); return; }
   const md = getModuleData(id);
   if(!md.durations) md.durations = [];
-  md.durations.push({ id:'d'+Date.now(), date:todayStr(), min });
-  saveDB(); input.value=''; renderMain();
-  toast('打卡成功，坚持就是胜利！');
+  md.durations.push({ id:'d'+Date.now(), date:todayStr(), start, end, min });
+  saveDB();
+  endInput.value='';
+  renderMain();
+  toast('打卡成功！' + start + '-' + end + ' 共' + min + '分钟');
 }
 
 function delDuration(id, did){
@@ -1586,7 +1664,12 @@ function renderSleep(id, m){
       <div style="margin-top:16px">
         <div style="font-size:12px;font-weight:700;color:var(--rose-deep);margin-bottom:8px">历史记录</div>
         ${history.length===0?'<div style="text-align:center;padding:14px;color:var(--text-mute);font-size:12px">还没有历史记录</div>':
-          history.map(r=>`<div class="duration-item"><span class="d-date">${r.date}${r.time?' '+r.time:''}</span><span style="font-size:11px;color:var(--text-soft)">质量 ${r.quality||'-'} · 时长 ${r.duration||'-'}</span></div>`).join('')
+          (()=>{
+            const maxShow=5;
+            const items=history.map(r=>`<div class="duration-item"><span class="d-date">${r.date}${r.time?' '+r.time:''}</span><span style="font-size:11px;color:var(--text-soft)">质量 ${r.quality||'-'} · 时长 ${r.duration||'-'}</span></div>`);
+            const needCollapse=items.length>maxShow;
+            return items.slice(0,maxShow).join('')+(needCollapse?`<div class="collapse-extra" style="display:none">${items.slice(maxShow).join('')}</div><button class="more-btn" onclick="toggleMore(this)"><span class="more-text">展开更多（共${items.length}条）</span></button>`:'');
+          })()
         }
       </div>
     </div>
@@ -1616,6 +1699,14 @@ function saveSleep(id){
 function renderNotes(id, m){
   const md = getModuleData(id);
   const records = md.lifeRecords.slice().reverse();
+  const maxShow = 5;
+  const needCollapse = records.length > maxShow;
+  const noteItems = records.map(r=>`
+    <div style="background:var(--pink-50);border-radius:var(--radius-xs);padding:12px;border:1px solid var(--line-soft)">
+      <div style="font-size:12px;font-weight:700;color:var(--rose-deep);margin-bottom:4px">${escapeHtml(r.title||'无标题')}</div>
+      <div style="font-size:11px;color:var(--text);line-height:1.5;white-space:pre-wrap">${escapeHtml(r.content||'')}</div>
+      <div style="font-size:10px;color:var(--text-mute);margin-top:6px;display:flex;justify-content:space-between"><span>${r.date}${r.time?' '+r.time:''}</span><button style="color:var(--rose)" onclick="delLifeRecord('${id}','${r.id}')">删除</button></div>
+    </div>`);
   return `
     <div class="card">
       <div class="card-title">${ICONS.note}随笔速记</div>
@@ -1624,15 +1715,10 @@ function renderNotes(id, m){
       <button class="add-card orange" onclick="saveNote('${id}')"><span class="add-icon">${ICONS.add}</span><span class="add-text">保存随笔</span></button>
       <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
         ${records.length===0?'<div style="text-align:center;padding:14px;color:var(--text-mute);font-size:12px">还没有随笔</div>':
-          records.map(r=>`
-            <div style="background:var(--pink-50);border-radius:var(--radius-xs);padding:12px;border:1px solid var(--line-soft)">
-              <div style="font-size:12px;font-weight:700;color:var(--rose-deep);margin-bottom:4px">${escapeHtml(r.title||'无标题')}</div>
-              <div style="font-size:11px;color:var(--text);line-height:1.5;white-space:pre-wrap">${escapeHtml(r.content||'')}</div>
-              <div style="font-size:10px;color:var(--text-mute);margin-top:6px;display:flex;justify-content:space-between"><span>${r.date}${r.time?' '+r.time:''}</span><button style="color:var(--rose)" onclick="delLifeRecord('${id}','${r.id}')">删除</button></div>
-            </div>
-          `).join('')
+          noteItems.slice(0, maxShow).join('') + (needCollapse ? `<div class="collapse-extra" style="display:none">${noteItems.slice(maxShow).join('')}</div>` : '')
         }
       </div>
+      ${needCollapse ? `<button class="more-btn" onclick="toggleMore(this)"><span class="more-text">展开更多（共${records.length}条）</span></button>` : ''}
     </div>
   `;
 }
@@ -1650,7 +1736,6 @@ function saveNote(id){
 function renderLifeHistory(id, type, title){
   const md = getModuleData(id);
   const today = todayStr();
-  // 按日期分组，排除今天（今天已在上方展示）
   const allRecords = (md.lifeRecords||[]).filter(r=>r.type===type && r.date!==today);
   const dateMap = {};
   allRecords.forEach(r=>{
@@ -1661,60 +1746,54 @@ function renderLifeHistory(id, type, title){
   
   if(dates.length===0) return '';
   
-  let itemsHtml = '';
-  if(type==='food'){
-    dates.forEach(d=>{
-      const dayRecords = dateMap[d];
+  const items = dates.map(d=>{
+    const dayRecords = dateMap[d];
+    if(type==='food'){
       const dayTotal = dayRecords.reduce((a,r)=>a+(r.calories||0),0);
-      itemsHtml += `
-        <div class="history-day">
-          <div class="history-day-head">
-            <span class="history-date">${d}</span>
-            <span class="history-total">${dayTotal} 千卡</span>
-          </div>
+      return `<div class="history-day">
+          <div class="history-day-head"><span class="history-date">${d}</span><span class="history-total">${dayTotal} 千卡</span></div>
           ${dayRecords.map(r=>`<div class="history-sub-item">${r.time||''} · ${r.name} ${r.weight}g · ${r.calories}千卡</div>`).join('')}
-        </div>
-      `;
-    });
-  }else if(type==='fitness'){
-    dates.forEach(d=>{
-      const dayRecords = dateMap[d];
+        </div>`;
+    }else if(type==='fitness'){
       const dayTotal = dayRecords.reduce((a,r)=>a+(r.min||0),0);
-      itemsHtml += `
-        <div class="history-day">
-          <div class="history-day-head">
-            <span class="history-date">${d}</span>
-            <span class="history-total">${dayTotal} 分钟</span>
-          </div>
+      return `<div class="history-day">
+          <div class="history-day-head"><span class="history-date">${d}</span><span class="history-total">${dayTotal} 分钟</span></div>
           ${dayRecords.map(r=>`<div class="history-sub-item">${r.time||''} · ${r.name} · ${r.min}分钟${r.note?' · '+r.note:''}</div>`).join('')}
-        </div>
-      `;
-    });
-  }else if(type==='pill'){
-    dates.forEach(d=>{
-      const dayRecords = dateMap[d];
+        </div>`;
+    }else if(type==='pill'){
       const slots = {早:[],午:[],晚:[]};
       dayRecords.forEach(r=>{ if(slots[r.slot]) slots[r.slot].push(r); });
-      itemsHtml += `
-        <div class="history-day">
-          <div class="history-day-head">
-            <span class="history-date">${d}</span>
-            <span class="history-total">${dayRecords.length} 项</span>
-          </div>
-          ${['早','午','晚'].filter(s=>slots[s].length>0).map(s=>
-            `<div class="history-sub-item"><b>${s}</b>：${slots[s].map(r=>`${r.time||''} ${r.name} ${r.dose||''}`).join('，')}</div>`
-          ).join('')}
-        </div>
-      `;
-    });
-  }
+      return `<div class="history-day">
+          <div class="history-day-head"><span class="history-date">${d}</span><span class="history-total">${dayRecords.length} 项</span></div>
+          ${['早','午','晚'].filter(s=>slots[s].length>0).map(s=>`<div class="history-sub-item"><b>${s}</b>：${slots[s].map(r=>`${r.time||''} ${r.name} ${r.dose||''}`).join('，')}</div>`).join('')}
+        </div>`;
+    }
+    return '';
+  });
   
+  const maxShow = 5;
+  const needCollapse = items.length > maxShow;
   return `
     <div class="card">
       <div class="card-title">${ICONS.clock}${title}<span class="tail">最近30天</span></div>
-      <div class="history-list">${itemsHtml}</div>
+      <div class="history-list">
+        ${items.slice(0, maxShow).join('')}
+        ${needCollapse ? `<div class="collapse-extra" style="display:none">${items.slice(maxShow).join('')}</div>` : ''}
+      </div>
+      ${needCollapse ? `<button class="more-btn" onclick="toggleMore(this)"><span class="more-text">展开更多（共${items.length}天）</span></button>` : ''}
     </div>
   `;
+}
+
+function toggleMore(btn){
+  const card = btn.closest('.card');
+  if(!card) return;
+  const extra = card.querySelector('.collapse-extra');
+  if(!extra) return;
+  const isHidden = extra.style.display === 'none' || !extra.style.display;
+  extra.style.display = isHidden ? 'block' : 'none';
+  const txt = btn.querySelector('.more-text');
+  if(txt) txt.textContent = isHidden ? '收起' : '展开更多';
 }
 
 function delLifeRecord(id, rid){
