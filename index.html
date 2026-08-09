@@ -34,6 +34,8 @@
   --green:#7fd1a8;
   --green-deep:#5fb589;
   --green-bg:#e8faf1;
+  --red:#ff6b81;
+  --red-bg:#ffe8ec;
   --orange:#ffb27a;
   --purple:#d9b3ff;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -436,6 +438,37 @@ button{cursor:pointer;color:inherit;}
 .more-btn:active{background:var(--pink-100);}
 .collapse-extra{display:none;}
 
+/* 收支明细（记账本） */
+.fin-period{display:flex;gap:8px;margin-bottom:12px;}
+.fin-tab{flex:1;padding:9px;border:1.5px solid var(--line);border-radius:var(--radius-xs);background:#fff;color:var(--text-soft);font-size:13px;font-weight:700;text-align:center;cursor:pointer;}
+.fin-tab.active{background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:#fff;border-color:var(--rose-deep);}
+.fin-stats{display:flex;gap:10px;margin-bottom:10px;}
+.fin-stat{flex:1;padding:12px;border-radius:var(--radius-sm);text-align:center;}
+.fin-stat:first-child{background:rgba(127,209,168,.14);}
+.fin-stat:last-child{background:rgba(255,107,129,.14);}
+.fin-stat-label{font-size:11px;color:var(--text-soft);margin-bottom:4px;}
+.fin-stat-num{font-size:19px;font-weight:800;}
+.fin-stat-num.income{color:var(--green);}
+.fin-stat-num.expense{color:var(--red);}
+.fin-balance{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--pink-50);border-radius:var(--radius-xs);font-size:12px;color:var(--text-soft);}
+.fin-balance b{font-size:16px;}
+.fin-balance b.income{color:var(--green);}
+.fin-balance b.expense{color:var(--red);}
+.fin-list{display:flex;flex-direction:column;gap:6px;}
+.fin-item{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--pink-50);border:1px solid var(--line-soft);border-radius:var(--radius-xs);}
+.fin-info{flex:1;min-width:0;}
+.fin-cat{font-size:13px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fin-note{font-size:11px;font-weight:400;color:var(--text-mute);}
+.fin-date{font-size:10px;color:var(--text-mute);margin-top:2px;}
+.fin-amt{font-size:14px;font-weight:800;white-space:nowrap;}
+.fin-amt.income{color:var(--green);}
+.fin-amt.expense{color:var(--red);}
+.fin-edit,.fin-del{width:30px;height:30px;flex-shrink:0;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.fin-edit svg{width:16px;height:16px;color:var(--rose);}
+.fin-del svg{width:16px;height:16px;color:var(--text-mute);}
+.csv-btn{display:flex;align-items:center;justify-content:center;gap:6px;border-style:solid;border-color:var(--rose);}
+.csv-btn svg{width:15px;height:15px;}
+
 .time-input-row{display:flex;gap:10px;margin-bottom:4px;}
 .time-field{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
 .time-field label{font-size:11px;font-weight:700;color:var(--rose-deep);}
@@ -569,6 +602,8 @@ const ICONS = {
   pill: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M13.5 3C16.54 3 19 5.46 19 8.5c0 1.23-.4 2.36-1.08 3.27l-8.69 8.69c-.91.68-2.04 1.08-3.27 1.08C2.92 21.54.5 19.12.5 16.12c0-1.23.4-2.36 1.08-3.27l8.69-8.69C11.18 3.47 12.31 3 13.5 3zm0 11c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>',
   moon: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 21h9c.55 0 1-.45 1-1s-.45-1-1-1h-9c-2.76 0-5-2.24-5-5s2.24-5 5-5h3v-2h-3c-3.87 0-7 3.13-7 7s3.13 7 7 7zm8-15c-3.87 0-7 3.13-7 7h2c0-2.76 2.24-5 5-5s5 2.24 5 5-2.24 5-5 5h-1v2h1c3.87 0 7-3.13 7-7s-3.13-7-7-7z"/></svg>',
   note: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>',
+  wallet: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h11zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>',
+  down: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>',
 };
 
 const MODULES = [
@@ -578,6 +613,7 @@ const MODULES = [
   { id:'pill', group:'日常生活', name:'用药情况', icon:'pill', color:'#a5d8ff', type:'life' },
   { id:'sleep', group:'日常生活', name:'睡眠状况', icon:'moon', color:'#d9b3ff', type:'life' },
   { id:'notes', group:'日常生活', name:'随笔速记', icon:'note', color:'#ffb27a', type:'life' },
+  { id:'finance', group:'日常生活', name:'收支明细', icon:'wallet', color:'#ffc36b', type:'life' },
   { id:'edu', group:'教师招聘', name:'教育学', icon:'book', color:'#ff7aa5', type:'subject' },
   { id:'psy', group:'教师招聘', name:'心理学', icon:'book', color:'#ff9bb3', type:'subject' },
   { id:'eng_main', group:'教师招聘', name:'英语主干', icon:'book', color:'#ffafca', type:'subject' },
@@ -675,6 +711,9 @@ let currentModule = 'daily';
 let currentStatRange = 'day';
 let currentErrFilter = 'all';
 let lastBackupPrompt = 0;
+let finPeriod = 'month';
+let finEditId = null;
+let finKind = 'expense';
 
 function renderNav(){
   const list = document.getElementById('navList');
@@ -1489,6 +1528,7 @@ function renderLife(id){
   if(id==='pill') return renderPill(id, m);
   if(id==='sleep') return renderSleep(id, m);
   if(id==='notes') return renderNotes(id, m);
+  if(id==='finance') return renderFinance(id, m);
   return '';
 }
 
@@ -1731,6 +1771,168 @@ function saveNote(id){
   md.lifeRecords.push({ id:'l'+Date.now(), date:todayStr(), time:timeStr(), title, content, type:'note' });
   saveDB(); renderMain();
   toast('随笔已保存～');
+}
+
+// ===== 收支明细（记账本）=====
+const FIN_CATS = {
+  expense: ['餐饮','交通','购物','居住','娱乐','医疗','学习','其他'],
+  income: ['工资','兼职','红包','理财','奖学金','其他']
+};
+
+function periodLabel(){
+  if(finPeriod==='day') return '今日';
+  if(finPeriod==='month') return '本月';
+  return '本年';
+}
+function periodMatch(dateStr){
+  const t = new Date();
+  if(finPeriod==='day') return dateStr === todayStr();
+  const ym = t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0');
+  if(finPeriod==='month') return dateStr && dateStr.startsWith(ym);
+  return dateStr && dateStr.startsWith(String(t.getFullYear()));
+}
+
+function renderFinance(id, m){
+  const md = getModuleData(id);
+  const all = (md.lifeRecords||[]).filter(r=>r.type==='finance');
+  const cur = all.filter(r=>periodMatch(r.date));
+  const inc = cur.filter(r=>r.kind==='income').reduce((a,r)=>a+(r.amount||0),0);
+  const exp = cur.filter(r=>r.kind==='expense').reduce((a,r)=>a+(r.amount||0),0);
+  const balance = inc - exp;
+
+  const list = all.slice().reverse();
+  const maxShow = 5;
+  const needCollapse = list.length > maxShow;
+  const items = list.map(r=>`
+    <div class="fin-item">
+      <div class="fin-info">
+        <div class="fin-cat">${escapeHtml(r.category||'未分类')}${r.note?` <span class="fin-note">${escapeHtml(r.note)}</span>`:''}</div>
+        <div class="fin-date">${r.date}${r.time?' '+r.time:''}</div>
+      </div>
+      <div class="fin-amt ${r.kind==='income'?'income':'expense'}">${r.kind==='income'?'+':'−'}¥${formatMoney(r.amount)}</div>
+      <button class="fin-edit" onclick="editFinance('${id}','${r.id}')">${ICONS.edit}</button>
+      <button class="fin-del" onclick="delFinance('${id}','${r.id}')">${ICONS.del}</button>
+    </div>`);
+
+  const editRec = finEditId ? all.find(r=>r.id===finEditId) : null;
+  const formKind = editRec ? editRec.kind : finKind;
+
+  return `
+    <div class="card">
+      <div class="card-title">${ICONS.wallet}收支明细<span class="tail">记账本</span></div>
+      <div class="fin-period">
+        <div class="fin-tab ${finPeriod==='day'?'active':''}" onclick="setFinPeriod('day')">日</div>
+        <div class="fin-tab ${finPeriod==='month'?'active':''}" onclick="setFinPeriod('month')">月</div>
+        <div class="fin-tab ${finPeriod==='year'?'active':''}" onclick="setFinPeriod('year')">年</div>
+      </div>
+      <div class="fin-stats">
+        <div class="fin-stat">
+          <div class="fin-stat-label">${periodLabel()}总收入</div>
+          <div class="fin-stat-num income">¥${formatMoney(inc)}</div>
+        </div>
+        <div class="fin-stat">
+          <div class="fin-stat-label">${periodLabel()}总支出</div>
+          <div class="fin-stat-num expense">¥${formatMoney(exp)}</div>
+        </div>
+      </div>
+      <div class="fin-balance">
+        <span>${periodLabel()}结余</span>
+        <b class="${balance>=0?'income':'expense'}">¥${formatMoney(balance)}</b>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">${ICONS.edit}${editRec?'编辑记录':'记一笔'}</div>
+      <div class="fin-period">
+        <div class="fin-tab ${formKind==='expense'?'active':''}" onclick="setFinKind('expense')">支出</div>
+        <div class="fin-tab ${formKind==='income'?'active':''}" onclick="setFinKind('income')">收入</div>
+      </div>
+      <input list="finCats_${id}" id="finCat_${id}" placeholder="分类（如餐饮、工资）" value="${editRec?escapeHtml(editRec.category):''}" style="width:100%;border:1.5px solid var(--line);border-radius:var(--radius-xs);padding:9px 12px;font-size:14px;background:#fff;margin-bottom:8px">
+      <datalist id="finCats_${id}">
+        ${FIN_CATS[formKind].map(c=>`<option value="${c}">`).join('')}
+      </datalist>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="number" id="finAmt_${id}" placeholder="金额" min="0" step="0.01" value="${editRec?editRec.amount:''}" style="flex:1;border:1.5px solid var(--line);border-radius:var(--radius-xs);padding:9px 12px;font-size:16px;background:#fff">
+        <input type="text" id="finNote_${id}" placeholder="备注（选填）" value="${editRec?escapeHtml(editRec.note):''}" style="flex:1;border:1.5px solid var(--line);border-radius:var(--radius-xs);padding:9px 12px;font-size:14px;background:#fff">
+      </div>
+      <button class="add-card orange" onclick="saveFinance('${id}')"><span class="add-icon">${ICONS[finEditId?'check':'add']}</span><span class="add-text">${finEditId?'保存修改':'保存记录'}</span></button>
+      ${finEditId?`<button class="add-card ash" onclick="cancelFinEdit()" style="margin-top:8px"><span class="add-icon">${ICONS.del}</span><span class="add-text">取消编辑</span></button>`:''}
+    </div>
+
+    <div class="card">
+      <div class="card-title">${ICONS.clock}明细记录<span class="tail">共${list.length}条</span></div>
+      <div class="fin-list">
+        ${list.length===0?'<div style="text-align:center;padding:14px;color:var(--text-mute);font-size:12px">还没有记账记录</div>':
+          items.slice(0, maxShow).join('') + (needCollapse?`<div class="collapse-extra" style="display:none">${items.slice(maxShow).join('')}</div>`:'')
+        }
+      </div>
+      ${needCollapse?`<button class="more-btn" onclick="toggleMore(this)"><span class="more-text">展开更多（共${list.length}条）</span></button>`:''}
+      ${list.length>0?`<button class="more-btn csv-btn" onclick="exportFinanceCSV('${id}')">${ICONS.down}导出CSV账单</button>`:''}
+    </div>
+  `;
+}
+
+function formatMoney(n){
+  return (n||0).toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function setFinPeriod(p){ finPeriod = p; renderMain(); }
+function setFinKind(k){ if(finEditId) return; finKind = k; renderMain(); }
+
+function saveFinance(id){
+  const cat = document.getElementById('finCat_'+id).value.trim();
+  const amt = parseFloat(document.getElementById('finAmt_'+id).value);
+  const note = document.getElementById('finNote_'+id).value.trim();
+  if(!cat){ toast('请填写分类'); return; }
+  if(isNaN(amt) || amt<=0){ toast('请填写有效金额'); return; }
+  const md = getModuleData(id);
+  if(!md.lifeRecords) md.lifeRecords = [];
+  const kind = finEditId ? (md.lifeRecords.find(r=>r.id===finEditId)||{}).kind : finKind;
+  if(finEditId){
+    const rec = md.lifeRecords.find(r=>r.id===finEditId);
+    if(rec){ rec.category=cat; rec.amount=amt; rec.note=note; }
+    finEditId = null;
+    saveDB(); renderMain(); toast('已修改记录');
+  }else{
+    md.lifeRecords.push({ id:'l'+Date.now(), date:todayStr(), time:timeStr(), kind, category:cat, amount:amt, note, type:'finance' });
+    saveDB(); renderMain(); toast('记账成功～');
+  }
+}
+
+function editFinance(id, rid){
+  finEditId = rid;
+  renderMain();
+}
+
+function cancelFinEdit(){
+  finEditId = null;
+  renderMain();
+}
+
+function delFinance(id, rid){
+  showConfirm('确定删除这条记账记录吗？', ()=>{
+    const md = getModuleData(id);
+    md.lifeRecords = md.lifeRecords.filter(r=>r.id!==rid);
+    if(finEditId===rid) finEditId = null;
+    saveDB(); renderMain(); toast('已删除');
+  });
+}
+
+function exportFinanceCSV(id){
+  const md = getModuleData(id);
+  const all = (md.lifeRecords||[]).filter(r=>r.type==='finance');
+  if(all.length===0){ toast('没有可导出的记录'); return; }
+  let csv = '日期,时间,类型,分类,金额,备注\n';
+  all.slice().reverse().forEach(r=>{
+    const type = r.kind==='income'?'收入':'支出';
+    csv += `${r.date},${r.time||''},${type},"${r.category||''}",${r.amount},"${(r.note||'').replace(/"/g,'""')}"\n`;
+  });
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `收支明细_${todayStr()}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV账单已导出～');
 }
 
 function renderLifeHistory(id, type, title){
