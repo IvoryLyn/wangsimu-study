@@ -650,9 +650,9 @@ button{cursor:pointer;color:inherit;}
     </div>
     <div class="drawer-body" id="navList"></div>
     <div class="drawer-foot">
-      <div class="sync-box" onclick="toggleSync()" style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--pink-50);border-radius:12px;margin-bottom:8px;border:1px solid var(--line)">
-        <span class="sync-dot off" id="syncDot" style="width:8px;height:8px;border-radius:50%;background:#ccc"></span>
-        <span class="sync-text" id="syncText" style="font-size:11px;color:var(--text-soft)">本地模式 · 设备未连接</span>
+      <div class="sync-box" onclick="openBackup()" style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--pink-50);border-radius:12px;margin-bottom:8px;border:1px solid var(--line);cursor:pointer">
+        <span class="sync-dot off" id="syncDot" style="width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0"></span>
+        <span class="sync-text" id="syncText" style="font-size:11px;color:var(--text-soft);flex:1;min-width:0">本地模式 · 点击设置同步</span>
       </div>
       <button class="drawer-foot-btn" onclick="openBackup()">
         <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/></svg>
@@ -793,6 +793,8 @@ function loadDB(){
 function saveDB(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
   catch(e){ toast('存储失败：'+e.message); }
+  // 自动同步：保存后 5 秒自动上传
+  scheduleAutoPush();
 }
 
 function getModuleData(id){
@@ -1542,10 +1544,34 @@ function openBackup(){
   const dataCount = Object.values(DB.modules).reduce((a,m)=>{
     return a + (m.stats?.length||0) + (m.plans?.length||0) + (m.errors?.length||0) + (m.durations?.length||0) + (m.lifeRecords?.length||0);
   },0) + DB.countdowns.length;
+  const hasToken = !!DB.githubToken;
+  const syncStatus = hasToken ? '已连接 · 点击立即同步' : '未连接';
   showModal(`
-    <div class="modal-head"><div class="modal-title">${ICONS.export}数据备份</div><button class="modal-close" onclick="closeModal()">${ICONS.close}</button></div>
+    <div class="modal-head"><div class="modal-title">${ICONS.export}数据备份与同步</div><button class="modal-close" onclick="closeModal()">${ICONS.close}</button></div>
+
+    <div style="font-size:13px;font-weight:800;color:var(--rose-deep);margin-bottom:10px">☁️ 云端同步</div>
+    <div class="backup-info" style="margin-bottom:10px">${hasToken ? '✅ 已绑定 GitHub Token，数据可多设备同步' : '绑定 GitHub Token 后，手机/电脑/PWA 数据自动同步，不再丢失'}</div>
+    ${hasToken ? `
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="backup-btn export" style="flex:1" onclick="cloudSyncNow()">${ICONS.export}<span>立即同步</span></button>
+        <button class="backup-btn import" style="flex:1" onclick="cloudPullOnly()">${ICONS.import}<span>仅拉取</span></button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="backup-btn import" style="flex:1;background:#fff4e6;color:#e08a3a" onclick="toggleAutoSync()">${DB.autoSync ? '⏸ 暂停自动同步' : '▶ 开启自动同步'}</button>
+        <button class="backup-btn import" style="flex:1;background:#ffe8ec;color:#d63031" onclick="removeToken()">解绑 Token</button>
+      </div>
+      <div class="backup-info" style="margin-bottom:10px">自动同步：${DB.autoSync ? '已开启（每次保存后5秒自动上传）' : '未开启'} · 上次同步：${DB.lastSync || '从未'}</div>
+    ` : `
+      <div class="form-group" style="margin-bottom:10px">
+        <input type="text" id="tokenInput" placeholder="粘贴 GitHub Token（github_pat_... 开头）" style="width:100%;border:1.5px solid var(--line);border-radius:var(--radius-xs);padding:10px 12px;font-size:13px;background:#fff;box-sizing:border-box">
+      </div>
+      <button class="btn-pink" onclick="bindToken()" style="width:100%;background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:#fff;border:none;padding:12px;border-radius:var(--radius-xs);font-size:14px;font-weight:600;cursor:pointer">绑定 Token 并同步</button>
+      <div class="backup-info" style="margin-top:8px">Token 只存在你的浏览器本地，不会上传到任何服务器<br>绑定后首次会自动拉取云端数据并合并</div>
+    `}
+
+    <div style="font-size:13px;font-weight:800;color:var(--rose-deep);margin:16px 0 10px">💾 手动备份</div>
     <div class="backup-info">当前共 ${dataCount} 条数据</div>
-    <div class="backup-row" style="margin-top:12px">
+    <div class="backup-row" style="margin-top:8px">
       <button class="backup-btn export" onclick="exportData()">${ICONS.export}<span>导出 JSON</span></button>
       <button class="backup-btn import" onclick="document.getElementById('fileInput').click()">${ICONS.import}<span>导入恢复</span></button>
     </div>
@@ -1621,16 +1647,160 @@ function confirmClear(){
   });
 }
 
-function toggleSync(){
-  DB.synced = !DB.synced; saveDB(); updateSyncUI();
-  toast(DB.synced?'已连接设备 · 数据可在同账号同步':'已切换为本地模式');
+// ===== GitHub 云同步 =====
+const GH_REPO = 'ivorylyn/wangsimu-study';
+const GH_BRANCH = 'main';
+const GH_DATA_FILE = 'data.json';
+let syncTimer = null;
+
+function ghApi(path, method, body){
+  const token = DB.githubToken;
+  if(!token) return Promise.reject('未绑定 Token');
+  const opts = {
+    method: method||'GET',
+    headers: {
+      'Authorization': 'Bearer '+token,
+      'User-Agent': 'wangsimu-study',
+      'Accept': 'application/vnd.github+json'
+    }
+  };
+  if(body){
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  return fetch('https://api.github.com/repos/'+GH_REPO+'/contents/'+path, opts).then(r=>r.json());
+}
+
+function bindToken(){
+  const token = document.getElementById('tokenInput').value.trim();
+  if(!token || !token.startsWith('github_pat_')){ toast('请输入有效的 Token（github_pat_ 开头）'); return; }
+  DB.githubToken = token;
+  DB.autoSync = true;
+  saveDB();
+  updateSyncUI();
+  toast('Token 已绑定，正在拉取云端数据...');
+  cloudPullOnly().then(()=>{
+    toast('云端数据已同步到本地～');
+    closeModal();
+  }).catch(()=>{
+    toast('Token 验证通过，暂无云端数据');
+    closeModal();
+  });
+}
+
+function removeToken(){
+  showConfirm('确定解绑 Token 吗？解绑后需重新绑定才能同步', ()=>{
+    delete DB.githubToken;
+    DB.autoSync = false;
+    saveDB();
+    updateSyncUI();
+    closeModal();
+    toast('Token 已解绑');
+  });
+}
+
+function toggleAutoSync(){
+  DB.autoSync = !DB.autoSync;
+  saveDB();
+  openBackup();
+  toast(DB.autoSync ? '自动同步已开启' : '自动同步已暂停');
+}
+
+function cloudPush(){
+  if(!DB.githubToken) return Promise.reject('未绑定 Token');
+  updateSyncText('正在上传...', 'syncing');
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(DB, null, 2))));
+  return ghApi(GH_DATA_FILE, 'GET').then(meta=>{
+    const payload = { message:'sync: '+todayStr()+' '+timeStr(), content, branch:GH_BRANCH };
+    if(meta.sha) payload.sha = meta.sha;
+    return ghApi(GH_DATA_FILE, 'PUT', payload);
+  }).then(r=>{
+    if(r.commit){
+      DB.lastSync = todayStr()+' '+timeStr();
+      saveDB();
+      updateSyncText('已同步 · '+timeStr(), 'synced');
+      return r;
+    }
+    throw r.message||'上传失败';
+  }).catch(e=>{
+    updateSyncText('同步失败 · '+String(e).slice(0,20), 'error');
+    throw e;
+  });
+}
+
+function cloudPullOnly(){
+  if(!DB.githubToken) return Promise.reject('未绑定 Token');
+  updateSyncText('正在拉取...', 'syncing');
+  return ghApi(GH_DATA_FILE, 'GET').then(meta=>{
+    if(!meta.content) throw '云端暂无数据';
+    const cloudData = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g,'')))));
+    // 合并：以云端为准，但保留本地 Token
+    const savedToken = DB.githubToken;
+    const savedAutoSync = DB.autoSync;
+    DB = cloudData;
+    DB.githubToken = savedToken;
+    DB.autoSync = savedAutoSync;
+    if(!DB.navOrder) DB.navOrder = MODULES.map(m=>m.id);
+    if(!DB.modules) DB.modules = {};
+    if(!DB.countdowns) DB.countdowns = [];
+    saveDB();
+    renderNav(); renderMain();
+    updateSyncText('已拉取 · '+timeStr(), 'synced');
+    return meta;
+  }).catch(e=>{
+    if(String(e).includes('404') || String(e).includes('暂无')){
+      updateSyncText('云端暂无数据', 'local');
+    }else{
+      updateSyncText('拉取失败', 'error');
+    }
+    throw e;
+  });
+}
+
+function cloudSyncNow(){
+  toast('正在同步...');
+  cloudPullOnly().then(()=>{
+    return cloudPush();
+  }).then(()=>{
+    toast('✅ 云端同步完成');
+  }).catch(e=>{
+    // 拉取失败可能是云端没数据，直接上传
+    cloudPush().then(()=>{
+      toast('✅ 数据已上传到云端');
+    }).catch(e2=>{
+      toast('同步失败：'+String(e2).slice(0,30));
+    });
+  });
+}
+
+function scheduleAutoPush(){
+  if(!DB.githubToken || !DB.autoSync) return;
+  if(syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(()=>{
+    cloudPush().catch(()=>{});
+  }, 5000);
+}
+
+function updateSyncText(text, state){
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  if(!dot || !txt) return;
+  txt.textContent = text;
+  const colors = {synced:'var(--green)', syncing:'var(--orange)', error:'var(--red)', local:'#ccc'};
+  dot.style.background = colors[state] || '#ccc';
+  dot.style.boxShadow = state==='synced' ? '0 0 0 3px rgba(127,209,168,.25)' : 'none';
 }
 
 function updateSyncUI(){
-  const dot = document.getElementById('syncDot');
-  const text = document.getElementById('syncText');
-  if(DB.synced){ dot.style.background='var(--green)'; dot.style.boxShadow='0 0 0 3px rgba(127,209,168,.25)'; text.textContent='已连接 · 多设备同步中'; }
-  else{ dot.style.background='#ccc'; dot.style.boxShadow='none'; text.textContent='本地模式 · 设备未连接'; }
+  if(DB.githubToken){
+    if(DB.lastSync){
+      updateSyncText('已同步 · '+DB.lastSync.slice(11), 'synced');
+    }else{
+      updateSyncText('已绑定 · 点击同步', 'synced');
+    }
+  }else{
+    updateSyncText('本地模式 · 点击设置同步', 'local');
+  }
 }
 
 function checkBackupPrompt(){
@@ -2498,11 +2668,21 @@ function init(){
       } else {
         renderMain();
       }
+      // 从后台切回时自动拉取云端数据
+      if(DB.githubToken && DB.autoSync){
+        cloudPullOnly().catch(()=>{});
+      }
     } else {
       saveDB();
     }
   });
   window.addEventListener('beforeunload', saveDB);
+  // 打开页面时自动拉取云端数据
+  if(DB.githubToken){
+    cloudPullOnly().then(()=>{
+      toast('云端数据已同步');
+    }).catch(()=>{});
+  }
 }
 
 init();
