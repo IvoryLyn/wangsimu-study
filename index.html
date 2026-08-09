@@ -1673,7 +1673,7 @@ function ghApi(path, method, body){
 
 function bindToken(){
   const token = document.getElementById('tokenInput').value.trim();
-  if(!token || !token.startsWith('github_pat_')){ toast('请输入有效的 Token（github_pat_ 开头）'); return; }
+  if(!token || (!token.startsWith('github_pat_') && !token.startsWith('ghp_'))){ toast('请输入有效的 Token（github_pat_ 或 ghp_ 开头）'); return; }
   DB.githubToken = token;
   DB.autoSync = true;
   DB.tokenBoundDate = todayStr();  // 记录绑定日期，用于计算到期
@@ -1724,7 +1724,13 @@ function cloudPush(){
     }
     throw r.message||'上传失败';
   }).catch(e=>{
-    updateSyncText('同步失败 · '+String(e).slice(0,20), 'error');
+    const msg = (typeof e==='string' ? e : (e.message||JSON.stringify(e)||'未知错误')).toLowerCase();
+    let userMsg = '同步失败';
+    if(msg.includes('bad credentials') || msg.includes('401')) userMsg = 'Token 无效，请在备份页解绑并重新绑定';
+    else if(msg.includes('404')) userMsg = '仓库或文件不存在';
+    else if(msg.includes('403')) userMsg = '权限不足，Token 需要仓库的 Contents 读写权限';
+    else if(msg.includes('network') || msg.includes('failed')) userMsg = '网络错误，请检查网络';
+    updateSyncText(userMsg, 'error');
     throw e;
   });
 }
@@ -1749,10 +1755,15 @@ function cloudPullOnly(){
     updateSyncText('已拉取 · '+timeStr(), 'synced');
     return meta;
   }).catch(e=>{
-    if(String(e).includes('404') || String(e).includes('暂无')){
+    const msg = (typeof e==='string' ? e : (e.message||'')).toLowerCase();
+    if(msg.includes('404') || msg.includes('暂无')){
       updateSyncText('云端暂无数据', 'local');
+    }else if(msg.includes('bad credentials') || msg.includes('401')){
+      updateSyncText('Token 无效，请解绑重绑', 'error');
+    }else if(msg.includes('403')){
+      updateSyncText('Token 权限不足', 'error');
     }else{
-      updateSyncText('拉取失败', 'error');
+      updateSyncText('拉取失败 · '+msg.slice(0,20), 'error');
     }
     throw e;
   });
