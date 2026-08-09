@@ -1560,7 +1560,7 @@ function openBackup(){
         <button class="backup-btn import" style="flex:1;background:#fff4e6;color:#e08a3a" onclick="toggleAutoSync()">${DB.autoSync ? '⏸ 暂停自动同步' : '▶ 开启自动同步'}</button>
         <button class="backup-btn import" style="flex:1;background:#ffe8ec;color:#d63031" onclick="removeToken()">解绑 Token</button>
       </div>
-      <div class="backup-info" style="margin-bottom:10px">自动同步：${DB.autoSync ? '已开启（每次保存后5秒自动上传）' : '未开启'} · 上次同步：${DB.lastSync || '从未'}</div>
+      <div class="backup-info" style="margin-bottom:10px">自动同步：${DB.autoSync ? '已开启（每次保存后5秒自动上传）' : '未开启'} · 上次同步：${DB.lastSync || '从未'}${(() => { const d = getTokenDaysLeft(); return d!==null ? ' · Token 剩 '+d+' 天到期' : ''; })()}</div>
     ` : `
       <div class="form-group" style="margin-bottom:10px">
         <input type="text" id="tokenInput" placeholder="粘贴 GitHub Token（github_pat_... 开头）" style="width:100%;border:1.5px solid var(--line);border-radius:var(--radius-xs);padding:10px 12px;font-size:13px;background:#fff;box-sizing:border-box">
@@ -1676,6 +1676,7 @@ function bindToken(){
   if(!token || !token.startsWith('github_pat_')){ toast('请输入有效的 Token（github_pat_ 开头）'); return; }
   DB.githubToken = token;
   DB.autoSync = true;
+  DB.tokenBoundDate = todayStr();  // 记录绑定日期，用于计算到期
   saveDB();
   updateSyncUI();
   toast('Token 已绑定，正在拉取云端数据...');
@@ -1786,17 +1787,34 @@ function updateSyncText(text, state){
   const txt = document.getElementById('syncText');
   if(!dot || !txt) return;
   txt.textContent = text;
-  const colors = {synced:'var(--green)', syncing:'var(--orange)', error:'var(--red)', local:'#ccc'};
+  const colors = {synced:'var(--green)', syncing:'var(--orange)', error:'var(--red)', warning:'#ff9800', local:'#ccc'};
   dot.style.background = colors[state] || '#ccc';
-  dot.style.boxShadow = state==='synced' ? '0 0 0 3px rgba(127,209,168,.25)' : 'none';
+  const glow = {synced:'rgba(127,209,168,.25)', warning:'rgba(255,152,0,.25)', error:'rgba(255,107,129,.25)'};
+  dot.style.boxShadow = glow[state] ? '0 0 0 3px '+glow[state] : 'none';
+}
+
+function getTokenDaysLeft(){
+  if(!DB.tokenBoundDate) return null;
+  const TOKEN_VALID_DAYS = 90;
+  const bound = new Date(DB.tokenBoundDate+'T00:00:00');
+  const now = new Date(todayStr()+'T00:00:00');
+  const elapsed = Math.floor((now - bound) / 86400000);
+  return TOKEN_VALID_DAYS - elapsed;
 }
 
 function updateSyncUI(){
   if(DB.githubToken){
-    if(DB.lastSync){
-      updateSyncText('已同步 · '+DB.lastSync.slice(11), 'synced');
+    const daysLeft = getTokenDaysLeft();
+    if(daysLeft !== null && daysLeft <= 0){
+      updateSyncText('⚠️ Token 已过期 · 点击续期', 'error');
+    }else if(daysLeft !== null && daysLeft <= 7){
+      updateSyncText('⏰ Token 剩 '+daysLeft+' 天到期 · '+DB.lastSync.slice(11), 'warning');
+    }else if(DB.lastSync){
+      const daysText = daysLeft!==null ? ' · '+daysLeft+'天' : '';
+      updateSyncText('已同步 · '+DB.lastSync.slice(11)+daysText, 'synced');
     }else{
-      updateSyncText('已绑定 · 点击同步', 'synced');
+      const daysText = daysLeft!==null ? ' · 剩'+daysLeft+'天' : '';
+      updateSyncText('已绑定 · 点击同步'+daysText, 'synced');
     }
   }else{
     updateSyncText('本地模式 · 点击设置同步', 'local');
@@ -2655,6 +2673,7 @@ function init(){
     if(curDay !== lastDay){
       lastDay = curDay;
       renderMain();
+      updateSyncUI();  // 跨日时更新 Token 到期提醒
       toast('已进入新的一天：'+curDay);
     }
   }, 60000);
