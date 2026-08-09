@@ -1741,21 +1741,50 @@ function cloudPullOnly(){
   return ghApi(GH_DATA_FILE, 'GET').then(meta=>{
     if(!meta.content) throw '云端暂无数据';
     const cloudData = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g,'')))));
-    // 合并：以云端为准，但保留本地 Token
-    const savedToken = DB.githubToken;
-    const savedAutoSync = DB.autoSync;
-    DB = cloudData;
-    DB.githubToken = savedToken;
-    DB.autoSync = savedAutoSync;
-    if(!DB.navOrder) DB.navOrder = MODULES.map(m=>m.id);
-    if(!DB.modules) DB.modules = {};
-    if(!DB.countdowns) DB.countdowns = [];
-    saveDB();
-    renderNav(); renderMain();
-    updateSyncText('已拉取 · '+timeStr(), 'synced');
+    // 检查云端是否是空数据/测试数据
+    const isCloudEmpty = !cloudData.modules || Object.keys(cloudData.modules).length === 0;
+    const isCloudTestData = cloudData.init || cloudData.test || cloudData.date === '2026-08-10';
+    const hasLocalData = DB.modules && Object.values(DB.modules).some(m =>
+      (m.stats?.length||0) + (m.plans?.length||0) + (m.errors?.length||0) + (m.durations?.length||0) + (m.lifeRecords?.length||0) > 0
+    );
+
+    if(isCloudTestData){
+      // 云端是测试数据，绝不覆盖本地
+      updateSyncText('云端为测试数据，已忽略', 'warning');
+      throw '云端为测试数据';
+    }
+
+    if(isCloudEmpty && hasLocalData){
+      // 云端空，本地有数据 → 不拉取
+      updateSyncText('云端为空，保留本地数据', 'warning');
+      throw '云端为空';
+    }
+
+    if(hasLocalData){
+      // 双方都有数据 → 智能合并
+      mergeCloudData(cloudData);
+      updateSyncText('已合并云端数据 · '+timeStr(), 'synced');
+    }else{
+      // 本地空，云端有数据 → 直接使用云端
+      const savedToken = DB.githubToken;
+      const savedAutoSync = DB.autoSync;
+      DB = cloudData;
+      DB.githubToken = savedToken;
+      DB.autoSync = savedAutoSync;
+      if(!DB.navOrder) DB.navOrder = MODULES.map(m=>m.id);
+      if(!DB.modules) DB.modules = {};
+      if(!DB.countdowns) DB.countdowns = [];
+      saveDB();
+      renderNav(); renderMain();
+      updateSyncText('已拉取云端 · '+timeStr(), 'synced');
+    }
     return meta;
   }).catch(e=>{
     const msg = (typeof e==='string' ? e : (e.message||'')).toLowerCase();
+    if(typeof e === 'string' && (msg.includes('测试') || msg.includes('为空'))){
+      // 已经在上面处理了，不重复
+      return;
+    }
     if(msg.includes('404') || msg.includes('暂无')){
       updateSyncText('云端暂无数据', 'local');
     }else if(msg.includes('bad credentials') || msg.includes('401')){
@@ -1769,14 +1798,56 @@ function cloudPullOnly(){
   });
 }
 
+// 智能合并云端数据到本地（按 ID 去重，保留本地最新数据）
+function mergeCloudData(cloud){
+  // 合并 navOrder（云端有但本地没有的加进去）
+  if(cloud.navOrder && Array.isArray(cloud.navOrder)){
+    cloud.navOrder.forEach(id => {
+      if(!DB.navOrder.includes(id)) DB.navOrder.push(id);
+    });
+  }
+  // 合并 countdowns（按 ID 去重）
+  if(cloud.countdowns && Array.isArray(cloud.countdowns)){
+    const existingIds = new Set(DB.countdowns.map(c=>c.id));
+    cloud.countdowns.forEach(c => {
+      if(!existingIds.has(c.id)) DB.countdowns.push(c);
+    });
+  }
+  // 合并 modules（每个字段按 ID 去重）
+  if(cloud.modules){
+    if(!DB.modules) DB.modules = {};
+    Object.keys(cloud.modules).forEach(mid => {
+      if(!DB.modules[mid]){
+        DB.modules[mid] = cloud.modules[mid];
+        return;
+      }
+      const local = DB.modules[mid];
+      const remote = cloud.modules[mid];
+      ['stats','plans','errors','durations','lifeRecords'].forEach(field => {
+        const localIds = new Set((local[field]||[]).map(x=>x.id));
+        (remote[field]||[]).forEach(item => {
+          if(!localIds.has(item.id)){
+            if(!local[field]) local[field] = [];
+            local[field].push(item);
+          }
+        });
+      });
+    });
+  }
+  saveDB();
+  renderNav(); renderMain();
+}
+
 function cloudSyncNow(){
   toast('正在同步...');
+  // 先 pull（智能合并，不会覆盖本地真实数据）
   cloudPullOnly().then(()=>{
+    // pull 成功后再 push（把本地数据同步到云端）
     return cloudPush();
   }).then(()=>{
     toast('✅ 云端同步完成');
   }).catch(e=>{
-    // 拉取失败可能是云端没数据，直接上传
+    // pull 失败时也尝试 push（避免因 pull 问题阻塞上传）
     cloudPush().then(()=>{
       toast('✅ 数据已上传到云端');
     }).catch(e2=>{
