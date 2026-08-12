@@ -700,6 +700,7 @@ const ICONS = {
   heart: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
   sparkle: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2L9.91 8.91 3 11l6.91 2.09L12 20l2.09-6.91L21 11l-6.91-2.09L12 2zm0 4l1.2 3.6L17 9l-3.8 1.4L12 14l-1.2-3.6L7 9l3.8-1.4L12 6zm7 12l-.7 2.1L16 21l2.3.9L19 24l.7-2.1L22 21l-2.3-.9L19 18zM5 14l-.5 1.5L3 16l1.5.5L5 18l.5-1.5L7 16l-1.5-.5L5 14z"/></svg>',
   eye: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>',
+  undo: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>',
 };
 
 const MODULES = [
@@ -874,7 +875,7 @@ function renderDaily(){
   yest.setDate(yest.getDate()-1);
   const yesterday = yest.getFullYear()+'-'+String(yest.getMonth()+1).padStart(2,'0')+'-'+String(yest.getDate()).padStart(2,'0');
 
-  let todayItems = [], yesterdayItems = [], overdueItems = [], historyItems = [];
+  let todayItems = [], yesterdayItems = [], overdueItems = [], doneItems = [], todayDoneItems = [];
   DB.navOrder.forEach(id=>{
     const m = MODULES.find(x=>x.id===id);
     if(!m || (m.type!=='subject' && m.type!=='life')) return;
@@ -885,9 +886,23 @@ function renderDaily(){
         else if(p.date===yesterday) yesterdayItems.push({...p, moduleId:id, moduleName:m.name, color:m.color});
         else if(p.date<yesterday) overdueItems.push({...p, moduleId:id, moduleName:m.name, color:m.color});
         // 注意：过期但属于 3 天内的，归到历史里；超过 7 天的，归到历史并标灰
+      } else {
+        // 今日完成的单独分组，显示在今日计划总览里
+        if((p.doneDate||p.date)===today){
+          todayDoneItems.push({...p, moduleId:id, moduleName:m.name, color:m.color});
+        } else {
+          // 其他已完成的归入历史（保留 20 条）
+          doneItems.push({...p, moduleId:id, moduleName:m.name, color:m.color});
+        }
       }
     });
   });
+  // 已完成按完成日期倒序，最多展示 20 条
+  doneItems.sort((a,b)=>(b.doneDate||b.date).localeCompare(a.doneDate||a.date));
+  const doneShow = doneItems.slice(0, 20);
+  const todayTotalCount = todayItems.length + todayDoneItems.length;
+  const todayDoneCount = todayDoneItems.length;
+  const todayPct = todayTotalCount>0 ? Math.round(todayDoneCount/todayTotalCount*100) : 0;
 
   // 按日期排序所有倒计时
   const sortedCds = DB.countdowns.map(c=>({
@@ -936,12 +951,18 @@ function renderDaily(){
 
     <div class="card">
       <div class="card-title">${ICONS.plan}今日计划总览
-        <span class="tail">${todayItems.length} 项待办</span>
+        <span class="tail">${todayItems.length} 项待办 · ${todayDoneCount} 项已完成</span>
       </div>
-      ${todayItems.length>0 ? `
-        <div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
-        <div class="progress-text">已完成 <b>0</b> / ${todayItems.length} 项 · 完成率 <b>0%</b></div>
+      ${todayTotalCount>0 ? `
+        <div class="progress-wrap"><div class="progress-bar" style="width:${todayPct}%"></div></div>
+        <div class="progress-text">已完成 <b>${todayDoneCount}</b> / ${todayTotalCount} 项 · 完成率 <b>${todayPct}%</b></div>
         ${renderPlanGroups(todayItems, today, 'today')}
+        ${todayDoneItems.length>0 ? `
+          <div style="margin-top:12px;border-top:1px solid var(--line-soft);padding-top:10px">
+            <div style="font-size:11px;color:var(--green);margin-bottom:8px;font-weight:600">✓ 今日已完成（可撤销）</div>
+            ${renderPlanGroups(todayDoneItems, today, 'done')}
+          </div>
+        ` : ''}
       ` : `<div style="text-align:center;padding:14px;color:var(--text-mute);font-size:13px">今天暂无待办，去各模块添加计划吧～</div>`}
     </div>
 
@@ -957,12 +978,17 @@ function renderDaily(){
 
     <div class="card">
       <div class="card-title">${ICONS.note}历史计划
-        <span class="tail">${overdueItems.length} 项逾期</span>
+        <span class="tail">${doneShow.length} 已完成 · ${overdueItems.length} 项逾期</span>
       </div>
+      ${doneShow.length>0 ? `
+        <div style="font-size:11px;color:var(--green);margin-bottom:8px;font-weight:600">✓ 往日已完成（可点撤销恢复）</div>
+        ${renderPlanGroups(doneShow, today, 'done')}
+      ` : ''}
       ${overdueItems.length>0 ? `
-        <div style="font-size:11px;color:#ff5252;margin-bottom:8px">⚠️ 这些计划已逾期，建议尽快处理或删除</div>
+        <div style="font-size:11px;color:#ff5252;margin-bottom:8px;${doneShow.length>0?'margin-top:12px;border-top:1px solid var(--line-soft);padding-top:12px;':''}">⚠️ 这些计划已逾期，建议尽快处理或删除</div>
         ${renderPlanGroups(overdueItems, today, 'history')}
-      ` : `<div style="text-align:center;padding:12px;color:var(--text-mute);font-size:12px">没有逾期计划，做得很好 👍</div>`}
+      ` : ''}
+      ${doneShow.length===0 && overdueItems.length===0 ? `<div style="text-align:center;padding:12px;color:var(--text-mute);font-size:12px">还没有历史计划</div>` : ''}
     </div>
 
     <div class="card">
@@ -996,13 +1022,26 @@ function renderPlanGroups(items, today, mode){
       </div>
       ${groups[name].items.map(it=>{
         let dateLabel = '';
-        if(mode==='yesterday'){
+        if(mode==='done'){
+          const doneD = it.doneDate || it.date;
+          const isTodayDone = doneD === today;
+          dateLabel = `<span class="from" style="color:var(--green)">${isTodayDone?'今日完成':(doneD+'完成')}</span>`;
+        } else if(mode==='yesterday'){
           dateLabel = '<span class="from" style="color:#ff9800">昨日遗留</span>';
         } else if(mode==='history'){
           const days = Math.ceil((new Date(today+'T00:00:00') - new Date(it.date+'T00:00:00')) / 86400000);
           dateLabel = `<span class="from" style="color:#ff5252">逾期${days}天</span>`;
         } else {
           dateLabel = '<span class="from">待办</span>';
+        }
+        if(mode==='done'){
+          return `
+          <div class="plan-task done">
+            <div class="check" style="cursor:default">${ICONS.check}</div>
+            <div class="txt">${it.priority==0?'⭐ ':''}${escapeHtml(it.name)}</div>
+            ${dateLabel}
+            <button class="plan-del-btn" style="opacity:.7;color:var(--rose-deep)" onclick="undoDone('${it.moduleId}','${it.id}')" title="撤销完成">${ICONS.undo}</button>
+          </div>`;
         }
         return `
         <div class="plan-task ${mode!=='today'?'overdue':''}">
@@ -1069,7 +1108,13 @@ function renderProgressRing(val, target){
 function quickDone(moduleId, planId){
   const md = getModuleData(moduleId);
   const p = md.plans.find(x=>x.id===planId);
-  if(p){ p.done = true; saveDB(); toast('完成一项，超棒！'); renderMain(); }
+  if(p){ p.done = true; p.doneDate = todayStr(); saveDB(); toast('完成一项，超棒！(可在历史计划里撤销)'); renderMain(); }
+}
+
+function undoDone(moduleId, planId){
+  const md = getModuleData(moduleId);
+  const p = md.plans.find(x=>x.id===planId);
+  if(p){ p.done = false; delete p.doneDate; saveDB(); toast('已撤销完成，任务回到待办'); renderMain(); }
 }
 
 function delCountdown(id){
@@ -1216,7 +1261,11 @@ function addPlan(id){
 function togglePlan(id, pid){
   const md = getModuleData(id);
   const p = md.plans.find(x=>x.id===pid);
-  if(p){ p.done = !p.done; saveDB(); renderMain(); }
+  if(p){
+    if(p.done){ p.done = false; delete p.doneDate; toast('已撤销完成'); }
+    else{ p.done = true; p.doneDate = todayStr(); toast('完成！(可撤销)'); }
+    saveDB(); renderMain();
+  }
 }
 
 function delPlan(id, pid){
@@ -1427,7 +1476,7 @@ function renderDurationCard(id, m){
   const needCollapse = allDurs.length > maxShow;
   const durItems = allDurs.map(d=>`<div class="duration-item">
               <span class="d-date">${d.date}</span>
-              <span class="d-time">${d.start||''} - ${d.end||''}</span>
+              <span class="d-time">${d.start||''} - ${d.end||''}${d.crossDay?' <span style="color:#ff9800;font-size:10px">跨零点</span>':''}</span>
               <span class="d-min">${d.min} 分钟</span>
               <button class="d-del" onclick="delDuration('${id}','${d.id}')">删除</button>
             </div>`);
@@ -1451,6 +1500,7 @@ function renderDurationCard(id, m){
         </div>
       </div>
       <button class="add-card rose" onclick="addDuration('${id}')" style="margin-top:10px"><span class="add-icon">${ICONS.add}</span><span class="add-text">打卡</span></button>
+      <div style="font-size:11px;color:var(--text-mute);margin-top:6px">支持跨零点：结束时间早于开始时间将自动按跨天计算时长</div>
       <div style="font-size:11px;color:var(--text-mute);margin-bottom:8px;margin-top:8px">时长趋势 · ${currentStatRange==='day'?'今日':currentStatRange==='week'?'本周':'本月'}共 ${durationSum(md.durations,currentStatRange)} 分钟</div>
       <div class="chart-box" style="margin-bottom:12px">${renderDurationChart(md.durations,currentStatRange)}</div>
       <div class="duration-list">
@@ -1472,15 +1522,26 @@ function addDuration(id){
   // Calculate minutes
   const [sh, sm] = start.split(':').map(Number);
   const [eh, em] = end.split(':').map(Number);
-  let min = (eh*60+em) - (sh*60+sm);
-  if(min <= 0){ toast('结束时间需晚于开始时间'); return; }
+  const startMin = sh*60+sm;
+  const endMin = eh*60+em;
+  let min, crossDay = false;
+  if(endMin > startMin){
+    min = endMin - startMin;
+  } else if(endMin < startMin){
+    // 跨零点：如 22:00 → 01:00，时长 = (24h - 开始) + 结束
+    min = (24*60 - startMin) + endMin;
+    crossDay = true;
+  } else {
+    toast('开始和结束时间相同'); return;
+  }
+  if(min > 16*60){ toast('时长超过16小时，请确认是否填写正确'); return; }
   const md = getModuleData(id);
   if(!md.durations) md.durations = [];
-  md.durations.push({ id:'d'+Date.now(), date:todayStr(), start, end, min });
+  md.durations.push({ id:'d'+Date.now(), date:todayStr(), start, end, min, crossDay });
   saveDB();
   endInput.value='';
   renderMain();
-  toast('打卡成功！' + start + '-' + end + ' 共' + min + '分钟');
+  toast('打卡成功！' + start + '-' + end + ' 共' + min + '分钟' + (crossDay?' (跨零点)':''));
 }
 
 function delDuration(id, did){
@@ -1679,12 +1740,13 @@ function bindToken(){
   DB.tokenBoundDate = todayStr();  // 记录绑定日期，用于计算到期
   saveDB();
   updateSyncUI();
-  toast('Token 已绑定，正在拉取云端数据...');
-  cloudPullOnly().then(()=>{
-    toast('云端数据已同步到本地～');
+  toast('Token 已绑定，云端模式已开启');
+  // 绑定后立即上传本地数据（云端为空，会安全上传）
+  cloudPush().then(()=>{
+    toast('本地数据已上传到云端～');
     closeModal();
   }).catch(()=>{
-    toast('Token 验证通过，暂无云端数据');
+    toast('云端模式已开启（首次同步稍后自动完成）');
     closeModal();
   });
 }
@@ -1743,7 +1805,9 @@ function cloudPullOnly(){
     const cloudData = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g,'')))));
     // 检查云端是否是空数据/测试数据
     const isCloudEmpty = !cloudData.modules || Object.keys(cloudData.modules).length === 0;
-    const isCloudTestData = cloudData.init || cloudData.test || cloudData.date === '2026-08-10';
+    const isCloudTestData = cloudData.init || cloudData.test || cloudData.date === '2026-08-10' ||
+                            (typeof cloudData === 'object' && Object.keys(cloudData).length <= 3 &&
+                             !cloudData.navOrder && !cloudData.countdowns);
     const hasLocalData = DB.modules && Object.values(DB.modules).some(m =>
       (m.stats?.length||0) + (m.plans?.length||0) + (m.errors?.length||0) + (m.durations?.length||0) + (m.lifeRecords?.length||0) > 0
     );
@@ -2778,11 +2842,9 @@ function init(){
     }
   });
   window.addEventListener('beforeunload', saveDB);
-  // 打开页面时自动拉取云端数据
+  // 打开页面时不自动拉取（避免覆盖本地数据），只刷新同步状态
   if(DB.githubToken){
-    cloudPullOnly().then(()=>{
-      toast('云端数据已同步');
-    }).catch(()=>{});
+    updateSyncUI();
   }
 }
 
